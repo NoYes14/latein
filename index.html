@@ -1,0 +1,1998 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glossa Lateinwerkstatt</title>
+<meta name="description" content="Lateinische Texte einfügen, Zeile für Zeile ins Deutsche übersetzen und interlinear exportieren.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231B211E'/%3E%3Crect x='7' y='10' width='18' height='3.5' rx='1.75' fill='%23F2F4F0'/%3E%3Crect x='7' y='18.5' width='13' height='3.5' rx='1.75' fill='%2372CD98'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: Arbeitsheft. Oben drei Schritte (Text → Übersetzen → Export), darunter eine
+   linierte Zeilenfläche mit Randzählung wie in einer Textausgabe, rechts eine schmale Werkzeugspalte. */
+:root{
+  --paper:#F2F4F0;
+  --surface:#FFFFFF;
+  --surface-2:#E8ECE6;
+  --ink:#1B211E;
+  --muted:#5D6862;
+  --rule:#DCE1DA;
+  --rule-strong:#C2CAC1;
+  --green:#1F7444;
+  --green-soft:#E2F1E7;
+  --active:#F6FAF7;
+  --on-green:#FFFFFF;
+  --amber:#975F0E;
+  --amber-soft:#F8EBD3;
+  --danger:#B42318;
+  --danger-soft:#FBE4E1;
+  --sheet:#FFFFFF;
+  --sheet-ink:#1A1A1A;
+  --sheet-muted:#6B6B6B;
+  --toast-bg:#1B211E;
+  --toast-fg:#F2F4F0;
+  --shadow-sm:0 1px 2px rgb(24 34 28 / .08);
+  --shadow:0 1px 2px rgb(24 34 28 / .06), 0 10px 28px -10px rgb(24 34 28 / .16);
+  --shadow-lg:0 2px 6px rgb(24 34 28 / .08), 0 20px 44px -12px rgb(24 34 28 / .28);
+  --f-latin:"Gentium Book Plus","Gentium Plus",Georgia,"Times New Roman",serif;
+  --f-ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --radius:12px;
+  --gutter:clamp(16px,3vw,32px);
+  --top:calc(env(safe-area-inset-top, 0px) + 72px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#101412; --surface:#181D1A; --surface-2:#232A25; --ink:#E3E8E4; --muted:#97A39B;
+    --rule:#2A322D; --rule-strong:#3C4640; --green:#72CD98; --green-soft:#1A3326; --active:#1C2420;
+    --on-green:#0C1811; --amber:#E7B261; --amber-soft:#3A2C15; --danger:#F4877C; --danger-soft:#3D1D1A;
+    --sheet:#FBFBF8; --sheet-ink:#1A1A1A; --sheet-muted:#6B6B6B; --toast-bg:#E3E8E4; --toast-fg:#101412;
+    --shadow-sm:0 1px 2px rgb(0 0 0 / .4);
+    --shadow:0 1px 2px rgb(0 0 0 / .35), 0 10px 28px -10px rgb(0 0 0 / .55);
+    --shadow-lg:0 2px 6px rgb(0 0 0 / .45), 0 20px 44px -12px rgb(0 0 0 / .75);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#101412; --surface:#181D1A; --surface-2:#232A25; --ink:#E3E8E4; --muted:#97A39B;
+  --rule:#2A322D; --rule-strong:#3C4640; --green:#72CD98; --green-soft:#1A3326; --active:#1C2420;
+  --on-green:#0C1811; --amber:#E7B261; --amber-soft:#3A2C15; --danger:#F4877C; --danger-soft:#3D1D1A;
+  --sheet:#FBFBF8; --sheet-ink:#1A1A1A; --sheet-muted:#6B6B6B; --toast-bg:#E3E8E4; --toast-fg:#101412;
+  --shadow-sm:0 1px 2px rgb(0 0 0 / .4);
+  --shadow:0 1px 2px rgb(0 0 0 / .35), 0 10px 28px -10px rgb(0 0 0 / .55);
+  --shadow-lg:0 2px 6px rgb(0 0 0 / .45), 0 20px 44px -12px rgb(0 0 0 / .75);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--f-ui);min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.45}
+a{color:var(--green)}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+kbd{font:600 .78em/1 var(--f-ui);padding:.2em .45em;border:1px solid var(--rule-strong);border-bottom-width:2px;border-radius:5px;background:var(--surface);color:var(--ink);white-space:nowrap}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Kopfleiste ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:30;background:var(--paper);background:color-mix(in srgb, var(--paper) 90%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:10px var(--gutter);display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
+.brand-mark .bm-la{fill:var(--ink)}
+.brand-mark .bm-de{fill:var(--green)}
+.brand-name{font:700 1.3rem/1 var(--f-latin);letter-spacing:.01em}
+.steps{display:flex;align-items:center;gap:6px;flex:1;justify-content:center;min-width:0}
+.step{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 7px;border-radius:999px;border:1px solid transparent;background:none;color:var(--muted);font-weight:600;font-size:.92rem;white-space:nowrap}
+.step:hover{color:var(--ink)}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;border:1.5px solid currentColor;font-variant-numeric:tabular-nums}
+.step[aria-current="page"]{color:var(--ink);background:var(--surface);border-color:var(--rule);box-shadow:var(--shadow-sm)}
+.step[aria-current="page"] .n{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.step-sep{width:18px;height:1px;background:var(--rule-strong);flex:none}
+.tstat{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tstat-bar{width:72px;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.tstat-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .3s ease}
+.tstat-num{font-weight:600;color:var(--ink)}
+.save{display:inline-flex;align-items:center;gap:6px}
+.save i{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.save.pending i{background:var(--rule-strong)}
+.save.fail{color:var(--danger)}
+.save.fail i{background:var(--danger)}
+
+/* ---------- Allgemein ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding-inline:var(--gutter);padding-block:28px 64px}
+.eyebrow{font:600 .72rem/1.2 var(--f-ui);text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin:0 0 6px}
+.vtitle{font-family:var(--f-latin);font-weight:700;font-size:clamp(1.55rem,2.6vw,2.1rem);line-height:1.15;margin:0;text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--muted);max-width:62ch}
+.vhead{margin-bottom:22px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px}
+.panel h2{font:700 1rem/1.3 var(--f-ui);margin:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.mini-label{font:600 .7rem/1.2 var(--f-ui);text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin:0 0 8px}
+.hint{font-size:.86rem;color:var(--muted);margin:0}
+.pill{display:inline-block;vertical-align:middle;font:600 .68rem/1 var(--f-ui);text-transform:uppercase;letter-spacing:.09em;padding:4px 7px;border-radius:999px;background:var(--amber-soft);color:var(--amber)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;border-radius:9px;border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink);font-weight:600;font-size:.92rem;line-height:1.2;text-decoration:none;transition:background .15s, border-color .15s}
+.btn:hover:not(:disabled){border-color:var(--muted)}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);border-color:var(--green)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover:not(:disabled){background:var(--surface-2);color:var(--ink);border-color:transparent}
+.btn.danger{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
+.btn.small{padding:6px 11px;font-size:.84rem;border-radius:8px}
+.btn svg{flex:none}
+
+.ic{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;border:0;background:transparent;color:var(--muted);padding:0;flex:none}
+.ic:hover{background:var(--surface-2);color:var(--ink)}
+
+.inp{width:100%;background:var(--surface);border:1px solid var(--rule-strong);border-radius:9px;padding:9px 12px;color:var(--ink);line-height:1.4}
+.inp:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.inp::placeholder{color:var(--muted);opacity:.75}
+select.inp{appearance:auto}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0;border:0;padding:0;margin:0}
+.field > label,.field > legend{font:600 .72rem/1.2 var(--f-ui);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:0}
+.field > legend{margin-bottom:8px}
+
+.seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;background:var(--surface-2);border-radius:10px;width:fit-content;max-width:100%}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:6px 12px;border-radius:8px;font-weight:600;font-size:.86rem;color:var(--muted);white-space:nowrap}
+.seg input:checked + span{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+.seg input:focus-visible + span{outline:2px solid var(--green);outline-offset:1px}
+
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:.92rem}
+.check input{accent-color:var(--green);width:17px;height:17px;margin:2px 0 0;flex:none}
+.check em{display:block;font-style:normal;color:var(--muted);font-size:.84rem}
+
+/* ---------- Schritt 1: Text ---------- */
+.tv{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;align-items:start}
+.form{display:flex;flex-direction:column;gap:20px;padding:22px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#in-text{min-height:260px;resize:vertical;font-family:var(--f-latin);font-size:1.1rem;line-height:1.6;padding:14px 16px}
+.checks{display:flex;flex-direction:column;gap:10px}
+.split-preview{border:1px solid var(--rule);border-radius:10px;background:var(--paper);overflow:hidden}
+.sp-head{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;border-bottom:1px solid var(--rule);font-size:.84rem;color:var(--muted)}
+.sp-head b{color:var(--ink)}
+.sp-list{list-style:none;margin:0;padding:6px 0;max-height:230px;overflow:auto;counter-reset:sp}
+.sp-list li{counter-increment:sp;display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;padding:4px 14px 4px 0;font-family:var(--f-latin);font-size:.98rem;line-height:1.45}
+.sp-list li::before{content:counter(sp);text-align:right;font:500 .76rem/1.9 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.sp-list:empty{display:none}
+.warn{border-radius:10px;padding:14px 16px;background:var(--amber-soft);color:var(--ink);display:flex;flex-direction:column;gap:10px}
+.warn p{margin:0}
+.warn-actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.note-sample{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border-radius:10px;background:var(--amber-soft);font-size:.9rem}
+.note-sample p{margin:0}
+
+.tv-side{display:flex;flex-direction:column;gap:16px}
+.proj-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.proj{display:flex;align-items:center;gap:4px;border-radius:9px}
+.proj.is-current{background:var(--green-soft)}
+.proj-open{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left;padding:9px 10px;border:0;background:none;border-radius:9px}
+.proj-open:hover{background:var(--surface-2)}
+.proj.is-current .proj-open:hover{background:transparent}
+.proj-title{font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.proj-meta{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.proj-bar{display:block;height:3px;border-radius:2px;background:var(--rule);margin-top:4px;overflow:hidden}
+.proj-bar i{display:block;height:100%;background:var(--green)}
+.proj-del.armed{width:auto;padding:0 10px;background:var(--danger-soft);color:var(--danger);font-size:.8rem;font-weight:600}
+.proj-io{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+.samples{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.sample{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--rule);border-radius:9px;background:var(--surface)}
+.sample:hover{border-color:var(--green)}
+.sample b{font-family:var(--f-latin);font-size:1rem;font-weight:400;font-style:italic}
+.sample span{font-size:.8rem;color:var(--muted)}
+
+/* ---------- Schritt 2: Übersetzen ---------- */
+.work{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+.work-main{min-width:0;display:flex;flex-direction:column;gap:18px}
+.whead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.whead-t{min-width:0}
+.tip{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;background:var(--green-soft);font-size:.9rem}
+.tip p{margin:0;max-width:70ch}
+
+.lines{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius)}
+.line{display:grid;grid-template-columns:54px minmax(0,1fr) 36px;column-gap:14px;padding:18px 12px 16px 0;border-top:1px solid var(--rule);scroll-margin-top:calc(var(--top) + 16px);scroll-margin-bottom:40px;transition:background .15s}
+.line:first-child{border-top:0;border-radius:var(--radius) var(--radius) 0 0}
+.line:last-child{border-radius:0 0 var(--radius) var(--radius)}
+.line:only-child{border-radius:var(--radius)}
+.line.active{background:var(--active)}
+.ln{display:flex;flex-direction:column;align-items:flex-end;gap:9px;padding-top:.42rem;font:500 .78rem/1 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.ln.five span{color:var(--ink);font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--rule-strong);margin-right:1px}
+.line.done .dot{background:var(--green);border-color:var(--green)}
+.line.unsure .dot{background:var(--amber);border-color:var(--amber);border-radius:1px;transform:rotate(45deg) scale(.92)}
+.lbody{min-width:0}
+.la{margin:0;font-family:var(--f-latin);font-size:1.24rem;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
+.w{cursor:pointer;border-radius:3px;transition:background .12s}
+.w:hover{background:var(--green-soft)}
+.w.known{text-decoration:underline dotted var(--green);text-decoration-thickness:1.5px;text-underline-offset:5px}
+.w.is-sel{background:var(--green-soft);box-shadow:0 0 0 2px var(--green-soft)}
+.de{display:block;width:100%;resize:none;overflow:hidden;border:0;border-bottom:1.5px dashed var(--rule-strong);border-radius:0;background:transparent;padding:4px 0 7px;margin-top:6px;color:var(--green);font-family:var(--f-ui);font-size:1.04rem;line-height:1.5;font-weight:500}
+.de::placeholder{color:var(--muted);opacity:.55;font-weight:400}
+.de:focus{outline:none;border-bottom-style:solid;border-bottom-color:var(--green)}
+.notebox{margin-top:10px}
+.note{display:block;width:100%;resize:none;overflow:hidden;border:0;border-radius:8px;background:var(--surface-2);padding:8px 11px;color:var(--ink);font-size:.9rem;line-height:1.45}
+.note::placeholder{color:var(--muted);opacity:.8}
+.note:focus{outline:2px solid var(--green);outline-offset:0}
+.ltools{display:flex;flex-direction:column;gap:2px;opacity:.55;transition:opacity .15s}
+.line:hover .ltools,.line.active .ltools,.ltools:focus-within{opacity:1}
+.t-unsure{font:700 1.05rem/1 var(--f-latin)}
+.t-unsure[aria-pressed="true"]{background:var(--amber-soft);color:var(--amber)}
+.t-note[aria-pressed="true"]{color:var(--green)}
+.la-edit{display:flex;flex-direction:column;gap:8px}
+.la-input{width:100%;resize:vertical;font-family:var(--f-latin);font-size:1.15rem;line-height:1.5;padding:8px 10px;border:1px solid var(--green);border-radius:8px;background:var(--surface);color:var(--ink)}
+.la-input:focus{outline:none;box-shadow:0 0 0 3px var(--green-soft)}
+.la-edit-actions{display:flex;gap:6px}
+.work-foot{display:flex;justify-content:flex-end}
+.empty{text-align:left;padding:28px}
+.empty h2{font-family:var(--f-latin);font-size:1.3rem;margin:0 0 6px}
+.empty p{color:var(--muted);margin:0 0 16px;max-width:55ch}
+
+.side{position:sticky;top:var(--top);display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - var(--top) - 16px);min-height:0}
+.prog{display:flex;flex-direction:column;gap:10px;flex:none}
+.prog-top{display:flex;align-items:baseline;gap:10px}
+.prog-num{font:700 1.6rem/1 var(--f-ui);font-variant-numeric:tabular-nums}
+.prog-num span{color:var(--muted);font-weight:500}
+.prog-label{color:var(--muted);font-size:.88rem}
+.bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);border-radius:4px;transition:width .3s ease}
+.prog-sub{margin:0;font-size:.84rem;color:var(--muted)}
+.prog .btn{align-self:flex-start}
+.tabs-panel{padding:0;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.tabs{display:flex;gap:2px;padding:6px;border-bottom:1px solid var(--rule);flex:none}
+.tab{flex:1;padding:7px 8px;border:0;border-radius:8px;background:none;color:var(--muted);font-weight:600;font-size:.86rem;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--surface-2);color:var(--ink)}
+.tab .count{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.pane{padding:16px 18px 18px;overflow:auto;min-height:0}
+
+.voc-form{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.voc-form .inp{padding:7px 10px;font-size:.9rem}
+#voc-w{font-family:var(--f-latin);font-size:1rem}
+.voc-form-actions{display:flex;gap:6px}
+.voc-list{list-style:none;margin:0;padding:0}
+.voc{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px;padding:7px 0;border-top:1px solid var(--rule)}
+.voc:first-child{border-top:0}
+.voc-main{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;border:0;background:none;padding:2px 4px;border-radius:6px}
+.voc-main:hover{background:var(--surface-2)}
+.voc-w{font-family:var(--f-latin);font-size:1.02rem;line-height:1.3;color:var(--ink);overflow-wrap:anywhere}
+.voc-m{font-size:.86rem;color:var(--green);font-weight:500;overflow-wrap:anywhere}
+.voc-ref{border:0;background:var(--surface-2);color:var(--muted);font:600 .72rem/1 var(--f-ui);padding:5px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+.voc-ref:hover{color:var(--ink)}
+.voc .ic{width:28px;height:28px}
+.empty-note{font-size:.86rem;color:var(--muted);margin:4px 0 0}
+.voc-tools{display:flex;justify-content:flex-end;margin-top:10px}
+
+.gram{font-size:.9rem;line-height:1.5}
+.gram ol{margin:0 0 16px;padding-left:1.3em;display:flex;flex-direction:column;gap:5px}
+.gram details{border-top:1px solid var(--rule);padding:8px 0}
+.gram details:last-of-type{border-bottom:1px solid var(--rule);margin-bottom:16px}
+.gram summary{cursor:pointer;font-weight:600;list-style-position:outside}
+.gram details p{margin:6px 0 0}
+.gram .ex{padding:6px 10px;border-radius:7px;background:var(--surface-2)}
+.gram [lang="la"]{font-family:var(--f-latin);font-style:italic;font-size:1.04em}
+.gram i{font-family:var(--f-latin);font-size:1.04em}
+.small-words{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0}
+.small-words dt{font-family:var(--f-latin);font-style:italic;font-weight:700;font-size:1.02em}
+.small-words dd{margin:0}
+.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center;margin:0 0 14px;font-size:.88rem}
+.keys dd{margin:0;color:var(--muted)}
+.pane-help p{font-size:.88rem;color:var(--muted);margin:0}
+
+/* ---------- Schritt 3: Export ---------- */
+.ex{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;align-items:start}
+.ex-opts{display:flex;flex-direction:column;gap:18px;position:sticky;top:var(--top)}
+.ex-actions{display:flex;flex-direction:column;gap:10px}
+.ex-files{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ex-files .btn{padding-inline:10px}
+.ex-opts hr{border:0;border-top:1px solid var(--rule);margin:0}
+.opt-group{display:flex;flex-direction:column;gap:8px}
+.opt-checks{display:flex;flex-direction:column;gap:8px}
+.ex-opts .seg{width:100%;flex-wrap:nowrap}
+.ex-opts .seg label{flex:1 1 auto}
+.ex-opts .seg span{padding:6px 8px;text-align:center;font-size:.82rem}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{position:relative;display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.86rem;color:var(--muted)}
+.sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.sw span{width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--rule-strong)}
+.sw input:checked ~ span{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.sw input:checked ~ em{color:var(--ink)}
+.sw em{font-style:normal}
+.sw input:focus-visible ~ span{outline:2px solid var(--green);outline-offset:4px}
+.ex-sum{font-size:.84rem;color:var(--muted);margin:0;font-variant-numeric:tabular-nums}
+.sheet-wrap{overflow-x:auto;padding-bottom:4px}
+.sheet{background:var(--sheet);color:var(--sheet-ink);border-radius:4px;box-shadow:var(--shadow);border:1px solid var(--rule);padding:clamp(24px,5vw,60px) clamp(20px,5.5vw,68px);max-width:820px;min-height:520px}
+.sheet-empty{color:var(--sheet-muted);font-style:italic}
+
+/* ---------- Schwebende Elemente ---------- */
+.pop,.menu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow-lg)}
+.pop{width:min(340px,calc(100vw - 24px));padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.pop:focus{outline:none}
+.pop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.pop-word{font:700 1.4rem/1.2 var(--f-latin);overflow-wrap:anywhere;padding-top:2px}
+.pop-enc{margin:0;font-size:.86rem;color:var(--muted)}
+.chips{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:2px;vertical-align:middle}
+.chip{border:1px solid var(--rule-strong);background:none;border-radius:999px;padding:2px 9px;font:italic 400 .92rem/1.4 var(--f-latin);color:var(--ink)}
+.chip.is-on{background:var(--green-soft);border-color:var(--green)}
+.pop-links{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pop-links a{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink);font-weight:600;font-size:.86rem;line-height:1.2}
+.pop-links a:hover{border-color:var(--green);color:var(--green)}
+.pop-links a span{flex:1;min-width:0;display:flex;flex-direction:column}
+.pop-links small{font-weight:400;color:var(--muted);font-size:.72rem}
+.pop-links svg{flex:none;opacity:.6}
+.pop-form{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--rule)}
+.pop-form .mini-label{margin:0 0 2px}
+.pop-form .inp{padding:7px 10px;font-size:.9rem}
+#pop-vw{font-family:var(--f-latin);font-size:1rem}
+.pop-form-row{display:flex;gap:6px;align-items:center}
+.pop-form-row .btn{flex:none}
+.pop-split{align-self:flex-start;margin:-4px 0 -6px -8px}
+.menu{min-width:240px;padding:6px;display:flex;flex-direction:column}
+.menu button{text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;font-size:.9rem;color:var(--ink)}
+.menu button:hover:not(:disabled),.menu button:focus-visible{background:var(--surface-2);outline:none}
+.menu .danger{color:var(--danger)}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 22px);z-index:70;transform:translate(-50%,12px);opacity:0;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);padding:11px 12px 11px 18px;border-radius:12px;background:var(--toast-bg);color:var(--toast-fg);box-shadow:var(--shadow-lg);font-size:.9rem;transition:opacity .2s, transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast button{border:0;border-radius:8px;padding:6px 11px;background:transparent;color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+#print-root{display:none}
+
+@media (max-width: 1000px){
+  .tv,.work,.ex{grid-template-columns:minmax(0,1fr)}
+  .side,.ex-opts{position:static;max-height:none}
+  .tabs-panel{overflow:visible}
+  .pane{overflow:visible}
+}
+@media (max-width: 720px){
+  .steps{order:3;flex-basis:100%;justify-content:space-between;gap:4px}
+  .step{padding:5px 10px 5px 5px;font-size:.86rem}
+  .step-sep{flex:1;width:auto;min-width:6px}
+  .tstat{margin-left:auto}
+  .tstat-bar{width:48px}
+  .row2{grid-template-columns:1fr}
+  .line{grid-template-columns:38px minmax(0,1fr) 32px;column-gap:8px;padding-right:6px}
+  .la{font-size:1.14rem}
+  .ltools{opacity:1}
+  .form{padding:16px}
+  :root{--top:calc(env(safe-area-inset-top, 0px) + 104px)}
+}
+@media (max-width: 420px){
+  .save span{display:none}
+  .step > span:last-child{font-size:.82rem}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+@media print{
+  @page{margin:18mm}
+  html,body{background:#fff!important}
+  body > *:not(#print-root){display:none!important}
+  #print-root{display:block}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><rect class="bm-la" x="2" y="6" width="24" height="4.5" rx="2.25"/><rect class="bm-de" x="2" y="16" width="17" height="4.5" rx="2.25"/></svg>
+      <span class="brand-name">Glossa</span>
+    </div>
+    <nav class="steps" aria-label="Arbeitsschritte">
+      <button class="step" type="button" data-view="text"><span class="n">1</span><span>Text</span></button>
+      <span class="step-sep" aria-hidden="true"></span>
+      <button class="step" type="button" data-view="work"><span class="n">2</span><span>Übersetzen</span></button>
+      <span class="step-sep" aria-hidden="true"></span>
+      <button class="step" type="button" data-view="export"><span class="n">3</span><span>Export</span></button>
+    </nav>
+    <div class="tstat" id="tstat">
+      <span class="tstat-bar" aria-hidden="true"><i id="t-bar"></i></span>
+      <span class="tstat-num" id="t-num">0/0</span>
+      <span class="save" id="save-state"><i></i><span>Gespeichert</span></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Schritt 1 -->
+  <section id="view-text" class="wrap" hidden>
+    <div class="tv">
+      <div>
+        <header class="vhead">
+          <p class="eyebrow">Schritt 1</p>
+          <h1 class="vtitle">Lateinischen Text einfügen</h1>
+          <p class="lede">Füge den Originaltext ein und lege fest, wie er in Übersetzungszeilen aufgeteilt wird. Unten siehst du sofort, welche Zeilen entstehen.</p>
+        </header>
+        <div class="panel form">
+          <div class="note-sample" id="tv-sample" hidden>
+            <p>Das ist ein Beispieltext. Für deinen eigenen Text lege besser einen neuen an.</p>
+            <button class="btn small" type="button" data-new>Neuer Text</button>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="in-title">Titel</label><input class="inp" id="in-title" type="text" placeholder="z. B. Gallien und seine Bewohner" autocomplete="off"></div>
+            <div class="field"><label for="in-source">Autor und Stelle</label><input class="inp" id="in-source" type="text" placeholder="z. B. Caesar, De bello Gallico 1,1" autocomplete="off"></div>
+          </div>
+          <div class="field">
+            <label for="in-text">Lateinischer Text</label>
+            <textarea class="inp" id="in-text" lang="la" spellcheck="false" placeholder="Gallia est omnis divisa in partes tres, quarum unam incolunt Belgae, aliam Aquitani …"></textarea>
+          </div>
+          <fieldset class="field">
+            <legend>Aufteilen in</legend>
+            <div class="seg">
+              <label><input type="radio" name="mode" value="lines" id="mode-lines"><span>Zeilen wie eingefügt</span></label>
+              <label><input type="radio" name="mode" value="sent" id="mode-sent"><span>Sätze</span></label>
+              <label><input type="radio" name="mode" value="parts" id="mode-parts"><span>Sinnabschnitte</span></label>
+            </div>
+            <p class="hint" id="mode-hint" style="margin-top:8px"></p>
+          </fieldset>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="opt-nums"><span>Zeilen- und Kapitelnummern entfernen<em>Ziffern wie „5“ am Rand oder „[2]“ im Text, wie sie beim Kopieren aus Textausgaben mitkommen</em></span></label>
+            <label class="check"><input type="checkbox" id="opt-hyphen"><span>Silbentrennung am Zeilenende zusammenfügen<em>„divi- / sa“ wird zu „divisa“</em></span></label>
+          </div>
+          <div class="split-preview">
+            <div class="sp-head"><span>Vorschau der Zeilen</span><b id="sp-count">Noch kein Text</b></div>
+            <ol id="sp-list" class="sp-list" lang="la"></ol>
+          </div>
+          <div class="warn" id="tv-warn" role="alert" hidden>
+            <p id="tv-warn-text"></p>
+            <div class="warn-actions">
+              <button class="btn small danger" type="button" id="warn-apply">Trotzdem übernehmen</button>
+              <button class="btn small" type="button" id="warn-reset">Text zurücksetzen</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" type="button" id="btn-apply">Übernehmen und übersetzen</button>
+            <p class="hint">Bereits übersetzte Zeilen bleiben erhalten, solange ihr lateinischer Text gleich bleibt.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="tv-side">
+        <div class="panel">
+          <div class="panel-head"><h2>Meine Texte</h2><button class="btn small" type="button" data-new>+ Neuer Text</button></div>
+          <ul id="proj-list" class="proj-list"></ul>
+          <div class="proj-io">
+            <button class="btn small ghost" type="button" id="btn-save-json" data-needs-top>Projekt sichern (.json)</button>
+            <label class="btn small ghost" for="file-json">Projekt laden …</label>
+            <input class="vh" type="file" id="file-json" accept=".json,application/json">
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Beispieltexte zum Üben</h2>
+          <ul class="samples" id="samples"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Schritt 2 -->
+  <section id="view-work" class="wrap" hidden>
+    <div class="work">
+      <div class="work-main">
+        <header class="whead">
+          <div class="whead-t">
+            <p class="eyebrow" id="w-source"></p>
+            <h1 class="vtitle"><span id="w-title"></span> <span class="pill" id="w-badge" hidden>Beispiel</span></h1>
+          </div>
+          <button class="btn small ghost" type="button" data-goto="text">Text ändern</button>
+        </header>
+        <div class="tip" id="w-tip" hidden>
+          <p><b>So geht’s:</b> Schreib die Übersetzung auf die gestrichelte Linie unter jeder Zeile. <kbd>Enter</kbd> springt zur nächsten Zeile. Klick auf ein lateinisches Wort, um es nachzuschlagen oder als Vokabel zu speichern.</p>
+          <button class="btn small" type="button" data-new>Eigenen Text einfügen</button>
+        </div>
+        <div id="lines" class="lines"></div>
+        <div class="empty panel" id="w-empty" hidden>
+          <h2>Noch kein Text</h2>
+          <p>Füge zuerst einen lateinischen Text ein. Er wird in Zeilen aufgeteilt, die du hier einzeln übersetzt.</p>
+          <button class="btn primary" type="button" data-goto="text">Text einfügen</button>
+        </div>
+        <div class="work-foot" id="w-foot"><button class="btn primary" type="button" data-goto="export">Weiter zum Export</button></div>
+      </div>
+
+      <aside class="side">
+        <div class="panel prog">
+          <div class="prog-top"><span class="prog-num"><b id="p-done">0</b><span> / <span id="p-total">0</span></span></span><span class="prog-label">Zeilen übersetzt</span></div>
+          <div class="bar" aria-hidden="true"><i id="p-bar"></i></div>
+          <p class="prog-sub" id="p-sub"></p>
+          <button class="btn small" type="button" id="btn-next-open">Zur nächsten offenen Zeile</button>
+        </div>
+        <div class="panel tabs-panel">
+          <div class="tabs" role="tablist" aria-label="Werkzeuge">
+            <button class="tab" role="tab" type="button" id="tab-vocab" aria-controls="pane-vocab" data-tab="vocab">Vokabeln <span class="count" id="vocab-count"></span></button>
+            <button class="tab" role="tab" type="button" id="tab-gram" aria-controls="pane-gram" data-tab="gram">Spickzettel</button>
+            <button class="tab" role="tab" type="button" id="tab-help" aria-controls="pane-help" data-tab="help">Tastatur</button>
+          </div>
+
+          <div class="pane" role="tabpanel" id="pane-vocab" aria-labelledby="tab-vocab">
+            <form id="voc-form" class="voc-form" autocomplete="off">
+              <input class="inp" id="voc-w" type="text" placeholder="Vokabel, z. B. bellum, belli n." aria-label="Vokabel" lang="la">
+              <input class="inp" id="voc-m" type="text" placeholder="Bedeutung" aria-label="Bedeutung">
+              <input type="hidden" id="voc-id">
+              <div class="voc-form-actions">
+                <button class="btn small primary" type="submit" id="voc-submit">Hinzufügen</button>
+                <button class="btn small ghost" type="button" id="voc-cancel" hidden>Abbrechen</button>
+              </div>
+            </form>
+            <ul id="voc-list" class="voc-list"></ul>
+            <p class="empty-note" id="voc-empty">Noch keine Vokabeln. Klick auf ein Wort im Text oder trag es oben ein.</p>
+            <div class="voc-tools"><button class="btn small ghost" type="button" id="voc-copy">Liste kopieren</button></div>
+          </div>
+
+          <div class="pane gram" role="tabpanel" id="pane-gram" aria-labelledby="tab-gram" hidden>
+            <p class="mini-label">Vorgehen bei einem Satz</p>
+            <ol>
+              <li><b>Prädikat</b> suchen: das finite Verb. Person, Numerus, Tempus und Modus bestimmen.</li>
+              <li><b>Subjekt</b> finden: ein Nominativ, der im Numerus zum Prädikat passt. Oft steckt es in der Verbendung.</li>
+              <li><b>Ergänzungen</b> bestimmen: Objekte im Akkusativ oder Dativ, Ablative, Ausdrücke mit Präposition.</li>
+              <li><b>Nebensätze</b> abgrenzen: Einleitungswörter wie <i>cum, ut, ne, quod, si, qui</i> markieren und auf Kommas achten.</li>
+              <li><b>Konstruktionen</b> erkennen (AcI, Abl. abs., PC …), wörtlich übersetzen und zum Schluss in gutes Deutsch bringen.</li>
+            </ol>
+            <p class="mini-label">Konstruktionen</p>
+            <details>
+              <summary>AcI: Akkusativ mit Infinitiv</summary>
+              <p>Nach Verben des Sagens, Denkens und Wahrnehmens (<i>dicere, putare, scire, videre</i>). Der Akkusativ wird zum Subjekt, der Infinitiv zum Prädikat eines dass-Satzes.</p>
+              <p class="ex"><span lang="la">Scio te venire.</span> → Ich weiß, dass du kommst.</p>
+              <p>Infinitiv Präsens: gleichzeitig. Perfekt: vorzeitig. Futur: nachzeitig.</p>
+            </details>
+            <details>
+              <summary>NcI: Nominativ mit Infinitiv</summary>
+              <p>Bei passiven Verben wie <i>dicitur, videtur, putatur</i>. Mit „soll“, „scheint“ oder „man sagt, dass …“ übersetzen.</p>
+              <p class="ex"><span lang="la">Homerus caecus fuisse dicitur.</span> → Homer soll blind gewesen sein.</p>
+            </details>
+            <details>
+              <summary>Ablativus absolutus</summary>
+              <p>Nomen und Partizip im Ablativ, grammatisch vom übrigen Satz losgelöst. Als Nebensatz (nachdem, weil, obwohl, während) oder mit Präposition übersetzen.</p>
+              <p class="ex"><span lang="la">Urbe capta hostes discesserunt.</span> → Nachdem die Stadt eingenommen worden war, zogen die Feinde ab.</p>
+              <p>PPP: vorzeitig. PPA: gleichzeitig. Ohne Partizip: <span lang="la">Caesare duce</span> → unter Caesars Führung.</p>
+            </details>
+            <details>
+              <summary>Participium coniunctum (PC)</summary>
+              <p>Das Partizip stimmt in Kasus, Numerus und Genus (KNG) mit einem Satzglied überein. Als Relativsatz, Adverbialsatz oder mit Beiordnung übersetzen.</p>
+              <p class="ex"><span lang="la">Milites fugientes capti sunt.</span> → Die Soldaten wurden gefangen, als sie flohen.</p>
+            </details>
+            <details>
+              <summary>Gerundium und Gerundivum</summary>
+              <p><b>Gerundium:</b> substantiviertes Verb mit <i>-nd-</i>. <span lang="la">ars scribendi</span> → die Kunst des Schreibens.</p>
+              <p><b>Gerundivum</b> mit <i>esse</i>: etwas muss getan werden. Wer es tun muss, steht im Dativ.</p>
+              <p class="ex"><span lang="la">Carthago delenda est.</span> → Karthago muss zerstört werden.</p>
+            </details>
+            <details>
+              <summary>cum, ut, ne</summary>
+              <p><b>cum</b> + Konjunktiv: als, weil, obwohl, während. <b>cum</b> + Indikativ: als, immer wenn. Als Präposition mit Ablativ: mit.</p>
+              <p><b>ut</b> + Konjunktiv: damit, dass, sodass. <b>ut</b> + Indikativ: wie, sobald.</p>
+              <p><b>ne</b> + Konjunktiv: damit nicht, dass nicht. Nach Verben des Fürchtens: dass.</p>
+            </details>
+            <p class="mini-label">Kleine Wörter</p>
+            <dl class="small-words">
+              <dt>-que</dt><dd>„und“, ans Wort gehängt: <span lang="la">senatus populusque</span></dd>
+              <dt>-ne</dt><dd>macht einen Satz zur Frage, bleibt unübersetzt</dd>
+              <dt>nonne</dt><dd>„etwa nicht?“, erwartet ein Ja</dd>
+              <dt>num</dt><dd>„etwa?“, erwartet ein Nein</dd>
+              <dt>quod</dt><dd>weil, dass, oder Relativpronomen: welches, was</dd>
+              <dt>quam</dt><dd>wie, als (Vergleich); mit Superlativ: möglichst</dd>
+              <dt>Qui, Quae, Quod</dt><dd>am Satzanfang oft relativischer Satzanschluss: dieser, diese, dies (<span lang="la">qua de causa</span> → aus diesem Grund)</dd>
+            </dl>
+          </div>
+
+          <div class="pane pane-help" role="tabpanel" id="pane-help" aria-labelledby="tab-help" hidden>
+            <dl class="keys">
+              <dt><kbd>Enter</kbd></dt><dd>Nächste Zeile</dd>
+              <dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>Zeilenumbruch in der Übersetzung</dd>
+              <dt><kbd>Alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Vorige oder nächste Zeile</dd>
+              <dt><kbd>Alt</kbd> + <kbd>U</kbd></dt><dd>Zeile als unsicher markieren</dd>
+              <dt><kbd>Alt</kbd> + <kbd>N</kbd></dt><dd>Notiz zur Zeile öffnen</dd>
+              <dt><kbd>Esc</kbd></dt><dd>Fenster schließen</dd>
+            </dl>
+            <p>Auf dem Mac ist <kbd>Alt</kbd> die Taste <kbd>⌥</kbd>. Ein Klick auf ein lateinisches Wort öffnet Wörterbücher, speichert es als Vokabel oder teilt die Zeile vor diesem Wort. Über <b>⋯</b> neben jeder Zeile kannst du Zeilen verbinden, bearbeiten oder löschen.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Schritt 3 -->
+  <section id="view-export" class="wrap" hidden>
+    <header class="vhead">
+      <p class="eyebrow">Schritt 3</p>
+      <h1 class="vtitle">Exportieren</h1>
+      <p class="lede">Immer eine Zeile Latein, darunter die deutsche Übersetzung in Grün. Die Vorschau rechts zeigt genau, was exportiert wird.</p>
+    </header>
+    <div class="ex">
+      <div class="panel ex-opts" id="ex-opts">
+        <div class="ex-actions">
+          <button class="btn primary" type="button" id="ex-copy">Formatiert kopieren</button>
+          <p class="hint">Zum Einfügen in Word, Pages oder Google Docs. Farben und Schrift bleiben erhalten.</p>
+          <div class="ex-files" data-needs-top>
+            <button class="btn small" type="button" id="ex-doc">Word (.doc)</button>
+            <button class="btn small" type="button" id="ex-print">Drucken / PDF</button>
+            <button class="btn small" type="button" id="ex-html">HTML-Datei</button>
+            <button class="btn small" type="button" id="ex-txt">Text (.txt)</button>
+          </div>
+          <p class="hint" id="framed-note" hidden>Herunterladen und Drucken gehen nur, wenn Glossa direkt im Browser geöffnet ist. Kopieren und Einfügen funktioniert überall.</p>
+          <button class="btn small ghost" type="button" id="ex-copytext" style="align-self:flex-start">Als reinen Text kopieren</button>
+        </div>
+        <hr>
+        <div class="opt-group">
+          <p class="mini-label">Inhalt</p>
+          <div class="opt-checks">
+            <label class="check"><input type="checkbox" id="ex-head"><span>Titel und Stelle</span></label>
+            <label class="check"><input type="checkbox" id="ex-notes"><span>Notizen unter den Zeilen</span></label>
+            <label class="check"><input type="checkbox" id="ex-unsure"><span>Unsichere Zeilen mit (?) kennzeichnen</span></label>
+            <label class="check"><input type="checkbox" id="ex-vocab"><span>Vokabelliste anhängen</span></label>
+          </div>
+        </div>
+        <div class="opt-group">
+          <p class="mini-label">Zeilenzählung</p>
+          <div class="seg">
+            <label><input type="radio" name="ex-num" value="none"><span>Keine</span></label>
+            <label><input type="radio" name="ex-num" value="all"><span>Jede</span></label>
+            <label><input type="radio" name="ex-num" value="five"><span>Alle 5</span></label>
+          </div>
+        </div>
+        <div class="opt-group">
+          <p class="mini-label">Zeilen ohne Übersetzung</p>
+          <div class="seg">
+            <label><input type="radio" name="ex-empty" value="line"><span>Schreiblinie</span></label>
+            <label><input type="radio" name="ex-empty" value="latin"><span>Nur Latein</span></label>
+            <label><input type="radio" name="ex-empty" value="skip"><span>Weglassen</span></label>
+          </div>
+        </div>
+        <div class="opt-group">
+          <p class="mini-label">Grünton der Übersetzung</p>
+          <div class="swatches">
+            <label class="sw"><input type="radio" name="ex-color" value="#1B6B3A"><span style="--c:#1B6B3A"></span><em>Dunkel</em></label>
+            <label class="sw"><input type="radio" name="ex-color" value="#22863F"><span style="--c:#22863F"></span><em>Grün</em></label>
+            <label class="sw"><input type="radio" name="ex-color" value="#0B8A68"><span style="--c:#0B8A68"></span><em>Smaragd</em></label>
+          </div>
+        </div>
+        <div class="opt-group">
+          <label class="mini-label" for="ex-font">Schrift</label>
+          <select class="inp" id="ex-font">
+            <option value="Georgia">Georgia</option>
+            <option value="Times">Times New Roman</option>
+            <option value="Arial">Arial</option>
+            <option value="Calibri">Calibri</option>
+            <option value="Gentium">Gentium (wie in Glossa)</option>
+          </select>
+        </div>
+        <div class="opt-group">
+          <p class="mini-label">Schriftgröße</p>
+          <div class="seg">
+            <label><input type="radio" name="ex-size" value="11"><span>11 pt</span></label>
+            <label><input type="radio" name="ex-size" value="12"><span>12 pt</span></label>
+            <label><input type="radio" name="ex-size" value="14"><span>14 pt</span></label>
+          </div>
+        </div>
+        <p class="ex-sum" id="ex-sum"></p>
+      </div>
+      <div class="sheet-wrap">
+        <div class="sheet" id="sheet"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="pop" class="pop" role="dialog" aria-labelledby="pop-word" tabindex="-1" hidden>
+  <div class="pop-head">
+    <span id="pop-word" class="pop-word" lang="la"></span>
+    <button class="ic" type="button" id="pop-close" aria-label="Schließen"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <p class="pop-enc" id="pop-enc" hidden></p>
+  <div>
+    <p class="mini-label">Nachschlagen</p>
+    <div class="pop-links" id="pop-links"></div>
+  </div>
+  <form id="pop-form" class="pop-form" autocomplete="off">
+    <p class="mini-label">Als Vokabel speichern</p>
+    <input class="inp" id="pop-vw" type="text" lang="la" placeholder="Grundform, z. B. pars, partis f." aria-label="Vokabel in der Grundform">
+    <div class="pop-form-row">
+      <input class="inp" id="pop-vm" type="text" placeholder="Bedeutung" aria-label="Bedeutung">
+      <button class="btn small primary" type="submit" id="pop-save">Speichern</button>
+    </div>
+  </form>
+  <button class="btn small ghost pop-split" type="button" id="pop-split"></button>
+</div>
+
+<div id="menu" class="menu" role="menu" hidden>
+  <button type="button" role="menuitem" data-act="merge">Mit nächster Zeile verbinden</button>
+  <button type="button" role="menuitem" data-act="edit">Lateinischen Text bearbeiten</button>
+  <button type="button" role="menuitem" data-act="insert">Neue Zeile darunter einfügen</button>
+  <button type="button" role="menuitem" data-act="delete" class="danger">Zeile löschen</button>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-msg"></span><button type="button" id="toast-btn" hidden></button></div>
+<div id="print-root"></div>
+
+<noscript><p style="padding:24px">Glossa braucht JavaScript. Bitte aktiviere es in deinem Browser.</p></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Hilfsfunktionen ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const clone = o => JSON.parse(JSON.stringify(o));
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FRAMED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+const KEY = 'glossa.v1';
+
+const WORD_SPLIT = /(\p{L}[\p{L}\p{M}]*)/u;
+const WORD_ALL = /\p{L}[\p{L}\p{M}]*/gu;
+const countWords = s => (String(s).match(WORD_ALL) || []).length;
+const plain = w => w.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const normKey = w => plain(w).replace(/j/g, 'i').replace(/v/g, 'u');
+const lineKey = s => plain(s).replace(/[^\p{L}]+/gu, ' ').trim();
+
+const ICON = {
+  note: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  ext: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+const DICTS = [
+  { name: 'Navigium', url: w => 'https://www.navigium.de/latein-woerterbuch/' + encodeURIComponent(w) },
+  { name: 'PONS', url: w => 'https://de.pons.com/%C3%BCbersetzung/latein-deutsch/' + encodeURIComponent(w) },
+  { name: 'Wiktionary', url: w => 'https://de.wiktionary.org/wiki/' + encodeURIComponent(w) },
+  { name: 'Formanalyse', note: 'Whitaker’s Words, engl.', url: w => 'https://archives.nd.edu/cgi-bin/wordz.pl?keyword=' + encodeURIComponent(w) }
+];
+
+const MODE_HINT = {
+  lines: 'Jede Zeile des eingefügten Textes wird eine Übersetzungszeile. Gut für Gedichte und Verse.',
+  sent: 'Der Text wird nach . ! ? geteilt. Gut für Prosa wie Caesar oder Cicero.',
+  parts: 'Teilt zusätzlich nach ; und : – kürzere Abschnitte bei langen Perioden.'
+};
+
+const FONTS = {
+  Georgia: "Georgia, 'Times New Roman', serif",
+  Times: "'Times New Roman', Times, serif",
+  Arial: 'Arial, Helvetica, sans-serif',
+  Calibri: 'Calibri, Carlito, Arial, sans-serif',
+  Gentium: "'Gentium Book Plus', 'Gentium Plus', Georgia, serif"
+};
+
+const DEFAULT_EXP = { head: true, notes: true, unsure: true, vocab: false, num: 'five', empty: 'line', color: '#22863F', font: 'Georgia', size: 12 };
+
+const SAMPLES = [
+  {
+    key: 'caesar', kind: 'Prosa', incipit: 'Gallia est omnis divisa in partes tres', title: 'Gallien und seine Bewohner', source: 'Caesar, De bello Gallico 1,1', mode: 'sent',
+    raw: 'Gallia est omnis divisa in partes tres, quarum unam incolunt Belgae, aliam Aquitani, tertiam qui ipsorum lingua Celtae, nostra Galli appellantur. Hi omnes lingua, institutis, legibus inter se differunt. Gallos ab Aquitanis Garumna flumen, a Belgis Matrona et Sequana dividit. Horum omnium fortissimi sunt Belgae, propterea quod a cultu atque humanitate provinciae longissime absunt, minimeque ad eos mercatores saepe commeant atque ea quae ad effeminandos animos pertinent important, proximique sunt Germanis, qui trans Rhenum incolunt, quibuscum continenter bellum gerunt. Qua de causa Helvetii quoque reliquos Gallos virtute praecedunt, quod fere cotidianis proeliis cum Germanis contendunt, cum aut suis finibus eos prohibent aut ipsi in eorum finibus bellum gerunt.'
+  },
+  {
+    key: 'cicero', kind: 'Rede', incipit: 'Quo usque tandem abutere, Catilina', title: 'Die erste Rede gegen Catilina', source: 'Cicero, In Catilinam 1,1', mode: 'sent',
+    raw: 'Quo usque tandem abutere, Catilina, patientia nostra? Quam diu etiam furor iste tuus nos eludet? Quem ad finem sese effrenata iactabit audacia? Nihilne te nocturnum praesidium Palati, nihil urbis vigiliae, nihil timor populi, nihil concursus bonorum omnium, nihil hic munitissimus habendi senatus locus, nihil horum ora voltusque moverunt? Patere tua consilia non sentis, constrictam iam horum omnium scientia teneri coniurationem tuam non vides? Quid proxima, quid superiore nocte egeris, ubi fueris, quos convocaveris, quid consili ceperis, quem nostrum ignorare arbitraris? O tempora, o mores!'
+  },
+  {
+    key: 'catull', kind: 'Gedicht', incipit: 'Vivamus, mea Lesbia, atque amemus', title: 'Vivamus, mea Lesbia', source: 'Catull, Carmen 5', mode: 'lines',
+    raw: 'Vivamus, mea Lesbia, atque amemus,\nrumoresque senum severiorum\nomnes unius aestimemus assis!\nsoles occidere et redire possunt:\nnobis cum semel occidit brevis lux,\nnox est perpetua una dormienda.\nda mi basia mille, deinde centum,\ndein mille altera, dein secunda centum,\ndeinde usque altera mille, deinde centum.\ndein, cum milia multa fecerimus,\nconturbabimus illa, ne sciamus,\naut ne quis malus invidere possit,\ncum tantum sciat esse basiorum.'
+  }
+];
+
+/* ---------- Text aufteilen ---------- */
+const PRAENOMEN = /(?:^|[\s(])(?:A|C|Cn|D|L|M|P|Q|Ser|Sex|Sp|T|Ti)\.$/;
+
+function prepare(raw, mode, opts) {
+  let t = String(raw || '').replace(/\r\n?/g, '\n').replace(/ /g, ' ');
+  if (opts.hyphen) t = t.replace(/(\p{L})[-­][ \t]*\n[ \t]*(\p{L})/gu, '$1$2');
+  let rows = t.split('\n');
+  if (opts.nums) {
+    rows = rows.map(r => r
+      .replace(/[[(]\d{1,4}[a-z]?[\])]/g, ' ')
+      .replace(/^\s*\d{1,4}[.)]?(\s+|$)/, '')
+      .replace(/\s+\d{1,4}\s*$/, ''));
+  }
+  rows = rows.map(r => r.replace(/[ \t]+/g, ' ').trim());
+  if (mode === 'lines') return rows.filter(Boolean);
+  const flat = rows.filter(Boolean).join(' ');
+  const re = mode === 'parts' ? /(?<=[.!?…;:]["'”’»«)\]]*)\s+/u : /(?<=[.!?…]["'”’»«)\]]*)\s+/u;
+  const out = [];
+  for (const seg of flat.split(re)) {
+    const s = seg.trim();
+    if (!s) continue;
+    // Abgekürzte Vornamen wie „M. Tullius“ nicht als Satzende behandeln
+    if (out.length && PRAENOMEN.test(out[out.length - 1])) out[out.length - 1] += ' ' + s;
+    else out.push(s);
+  }
+  return out;
+}
+
+/* ---------- Zustand ---------- */
+const newLine = la => ({ id: uid(), la, de: '', note: '', unsure: false });
+function newProject(f = {}) {
+  return Object.assign({ id: uid(), title: '', source: '', raw: '', mode: 'sent', opts: { nums: true, hyphen: true }, lines: [], vocab: [], sample: false, last: null, created: Date.now(), updated: Date.now() }, f);
+}
+function projectFromSample(s) {
+  const p = newProject({ title: s.title, source: s.source, raw: s.raw, mode: s.mode, sample: true });
+  p.lines = prepare(p.raw, p.mode, p.opts).map(newLine);
+  return p;
+}
+function seed() {
+  const p = projectFromSample(SAMPLES[0]);
+  const [a, b, c] = p.lines;
+  a.de = 'Gallien in seiner Gesamtheit ist in drei Teile geteilt, von denen den einen die Belger bewohnen, den zweiten die Aquitaner und den dritten die, die in ihrer eigenen Sprache Kelten, in unserer Gallier genannt werden.';
+  a.note = 'quarum: Relativpronomen im Genitiv Plural, bezogen auf partes → „von denen“.';
+  b.de = 'Diese alle unterscheiden sich untereinander in Sprache, Einrichtungen und Gesetzen.';
+  p.vocab = [
+    { id: uid(), word: 'pars, partis f.', meaning: 'Teil, Seite', forms: ['partes'], line: a.id },
+    { id: uid(), word: 'incolere, incolo', meaning: 'bewohnen', forms: ['incolunt'], line: a.id },
+    { id: uid(), word: 'differre, differo', meaning: 'sich unterscheiden', forms: ['differunt'], line: b.id }
+  ];
+  p.last = c.id;
+  return { v: 1, view: 'work', tab: 'vocab', current: p.id, projects: [p], exp: { ...DEFAULT_EXP } };
+}
+function normalizeState(s) {
+  s.exp = Object.assign({ ...DEFAULT_EXP }, s.exp || {});
+  s.tab = s.tab || 'vocab';
+  s.view = ['text', 'work', 'export'].includes(s.view) ? s.view : 'work';
+  s.projects = (s.projects || []).map(normalizeProject);
+  return s;
+}
+function normalizeProject(p) {
+  p = Object.assign(newProject(), p);
+  p.opts = Object.assign({ nums: true, hyphen: true }, p.opts || {});
+  p.lines = (p.lines || []).map(l => Object.assign(newLine(''), l, { la: String(l.la || ''), de: String(l.de || ''), note: String(l.note || '') }));
+  p.vocab = (p.vocab || []).map(v => Object.assign({ id: uid(), word: '', meaning: '', forms: [], line: null }, v));
+  p.vocab.forEach(v => { if (!Array.isArray(v.forms)) v.forms = []; });
+  return p;
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return d && Array.isArray(d.projects) ? d : null;
+  } catch (e) { return null; }
+}
+
+let state = normalizeState(load() || seed());
+
+function cur() {
+  let p = state.projects.find(x => x.id === state.current);
+  if (!p) {
+    p = state.projects.slice().sort((a, b) => b.updated - a.updated)[0];
+    if (!p) { p = newProject(); state.projects.push(p); }
+    state.current = p.id;
+  }
+  return p;
+}
+const getLine = id => cur().lines.find(l => l.id === id);
+const idxOf = id => cur().lines.findIndex(l => l.id === id);
+const lineEl = id => document.getElementById('L-' + id);
+
+/* ---------- Speichern ---------- */
+let saveTimer = null;
+function setSaveState(s) {
+  const el = $('#save-state');
+  el.classList.toggle('pending', s === 'pending');
+  el.classList.toggle('fail', s === 'fail');
+  el.lastElementChild.textContent = s === 'fail' ? 'Nicht gespeichert' : s === 'pending' ? 'Speichert …' : 'Gespeichert';
+  el.title = s === 'fail' ? 'Der Browser blockiert das Speichern. Exportiere deine Arbeit, bevor du die Seite schließt.' : 'Wird automatisch in diesem Browser gespeichert.';
+}
+function scheduleSave() {
+  setSaveState('pending');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 350);
+}
+function saveNow() {
+  clearTimeout(saveTimer);
+  try { localStorage.setItem(KEY, JSON.stringify(state)); setSaveState('ok'); }
+  catch (e) { setSaveState('fail'); }
+}
+function touch(p = cur()) { p.updated = Date.now(); scheduleSave(); }
+window.addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(); });
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg, opts = {}) {
+  const t = $('#toast'), b = $('#toast-btn');
+  $('#toast-msg').textContent = msg;
+  if (opts.action) {
+    b.hidden = false;
+    b.textContent = opts.action.label;
+    b.onclick = () => { hideToast(); opts.action.fn(); };
+  } else b.hidden = true;
+  t.hidden = false;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, opts.ms || (opts.action ? 6500 : 2800));
+}
+function hideToast() {
+  const t = $('#toast');
+  t.classList.remove('show');
+  setTimeout(() => { if (!t.classList.contains('show')) t.hidden = true; }, 220);
+}
+
+/* ---------- Ansichten ---------- */
+const VIEWS = { text: $('#view-text'), work: $('#view-work'), export: $('#view-export') };
+let pendingView = null;
+
+function setView(v) {
+  state.view = v;
+  closePop(); closeMenu();
+  for (const [k, sec] of Object.entries(VIEWS)) sec.hidden = k !== v;
+  $$('.step').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
+  if (v === 'text') renderText();
+  else if (v === 'work') renderWork();
+  else renderExport();
+  window.scrollTo(0, 0);
+  updateProgress();
+  scheduleSave();
+}
+
+function planApply(p) {
+  const next = prepare(p.raw, p.mode, p.opts);
+  const pool = new Map();
+  for (const l of p.lines) {
+    const k = lineKey(l.la);
+    if (!pool.has(k)) pool.set(k, []);
+    pool.get(k).push(l);
+  }
+  const used = new Set();
+  const lines = next.map(la => {
+    const old = (pool.get(lineKey(la)) || []).shift();
+    if (old) { used.add(old.id); return { ...old, la }; }
+    return newLine(la);
+  });
+  const lost = p.lines.filter(l => !used.has(l.id) && (l.de.trim() || l.note.trim())).length;
+  const changed = next.length !== p.lines.length || next.some((la, i) => la !== p.lines[i].la);
+  return { lines, lost, changed };
+}
+
+function go(view, force = false) {
+  if (state.view === 'text' && view !== 'text') {
+    const p = cur();
+    const plan = planApply(p);
+    if (plan.changed) {
+      if (plan.lost && !force) {
+        pendingView = view;
+        $('#tv-warn-text').textContent = plan.lost === 1
+          ? 'Mit der neuen Aufteilung geht 1 Übersetzung verloren, weil sich die lateinische Zeile geändert hat.'
+          : `Mit der neuen Aufteilung gehen ${plan.lost} Übersetzungen verloren, weil sich die lateinischen Zeilen geändert haben.`;
+        $('#tv-warn').hidden = false;
+        $('#tv-warn').scrollIntoView({ block: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
+        return;
+      }
+      p.lines = plan.lines;
+      if (p.last && !p.lines.some(l => l.id === p.last)) p.last = null;
+      touch(p);
+    }
+  }
+  setView(view);
+}
+
+/* ---------- Schritt 1: Text ---------- */
+function renderText() {
+  const p = cur();
+  $('#in-title').value = p.title;
+  $('#in-source').value = p.source;
+  $('#in-text').value = p.raw;
+  $$('input[name="mode"]').forEach(r => { r.checked = r.value === p.mode; });
+  $('#opt-nums').checked = !!p.opts.nums;
+  $('#opt-hyphen').checked = !!p.opts.hyphen;
+  $('#tv-sample').hidden = !p.sample;
+  $('#tv-warn').hidden = true;
+  updateSplitPreview();
+  renderProjects();
+  renderSamples();
+}
+function updateSplitPreview() {
+  const p = cur();
+  const lines = prepare(p.raw, p.mode, p.opts);
+  const words = lines.reduce((n, l) => n + countWords(l), 0);
+  $('#sp-count').textContent = lines.length ? `${lines.length} ${lines.length === 1 ? 'Zeile' : 'Zeilen'} · ${words} Wörter` : 'Noch kein Text';
+  $('#sp-list').innerHTML = lines.map(l => `<li>${esc(l)}</li>`).join('');
+  $('#mode-hint').textContent = MODE_HINT[p.mode] || '';
+  $('#tv-warn').hidden = true;
+  $('#btn-apply').disabled = !lines.length;
+}
+function fmtDate(ts) {
+  const d = new Date(ts), now = new Date();
+  if (d.toDateString() === now.toDateString()) return 'heute, ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function stats(p) {
+  let done = 0, unsure = 0, words = 0;
+  for (const l of p.lines) {
+    if (l.de.trim()) done++;
+    if (l.unsure) unsure++;
+    words += countWords(l.la);
+  }
+  return { total: p.lines.length, done, unsure, words };
+}
+function renderProjects() {
+  const list = state.projects.slice().sort((a, b) => b.updated - a.updated);
+  $('#proj-list').innerHTML = list.map(p => {
+    const s = stats(p);
+    const pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+    const meta = [p.source, `${s.done}/${s.total} Zeilen`, fmtDate(p.updated)].filter(Boolean).map(esc).join(' · ');
+    return `<li class="proj${p.id === state.current ? ' is-current' : ''}">
+      <button class="proj-open" type="button" data-id="${p.id}"${p.id === state.current ? ' aria-current="true"' : ''}>
+        <span class="proj-title">${esc(p.title || 'Ohne Titel')}${p.sample ? ' <span class="pill">Beispiel</span>' : ''}</span>
+        <span class="proj-meta">${meta}</span>
+        <span class="proj-bar" aria-hidden="true"><i style="width:${pct}%"></i></span>
+      </button>
+      <button class="ic proj-del" type="button" data-id="${p.id}" aria-label="${esc(p.title || 'Text')} löschen" title="Text löschen">${ICON.trash}</button>
+    </li>`;
+  }).join('');
+}
+function renderSamples() {
+  $('#samples').innerHTML = SAMPLES.map(s => {
+    const n = prepare(s.raw, s.mode, { nums: true, hyphen: true }).length;
+    return `<li><button class="sample" type="button" data-sample="${s.key}"><b lang="la">${esc(s.incipit)} …</b><span>${esc(s.source)} · ${s.kind} · ${n} ${s.mode === 'lines' ? 'Verse' : 'Sätze'}</span></button></li>`;
+  }).join('');
+}
+function newText() {
+  const p = newProject();
+  state.projects.push(p);
+  state.current = p.id;
+  scheduleSave();
+  setView('text');
+  $('#in-title').focus();
+}
+function openProject(id) {
+  state.current = id;
+  scheduleSave();
+  setView(cur().lines.length ? 'work' : 'text');
+}
+function loadSample(key) {
+  const s = SAMPLES.find(x => x.key === key);
+  if (!s) return;
+  const p = projectFromSample(s);
+  state.projects.push(p);
+  state.current = p.id;
+  scheduleSave();
+  setView('work');
+  toast(`„${s.title}“ geladen.`);
+}
+
+function onTextField(fn) {
+  return e => {
+    const p = cur();
+    fn(p, e.target);
+    p.sample = false;
+    $('#tv-sample').hidden = true;
+    touch(p);
+    renderProjects();
+  };
+}
+$('#in-title').addEventListener('input', onTextField((p, t) => { p.title = t.value; }));
+$('#in-source').addEventListener('input', onTextField((p, t) => { p.source = t.value; }));
+$('#in-text').addEventListener('input', onTextField((p, t) => { p.raw = t.value; updateSplitPreview(); }));
+$$('input[name="mode"]').forEach(r => r.addEventListener('change', () => { const p = cur(); p.mode = r.value; touch(p); updateSplitPreview(); }));
+$('#opt-nums').addEventListener('change', e => { const p = cur(); p.opts.nums = e.target.checked; touch(p); updateSplitPreview(); });
+$('#opt-hyphen').addEventListener('change', e => { const p = cur(); p.opts.hyphen = e.target.checked; touch(p); updateSplitPreview(); });
+$('#btn-apply').addEventListener('click', () => go('work'));
+$('#warn-apply').addEventListener('click', () => go(pendingView || 'work', true));
+$('#warn-reset').addEventListener('click', () => {
+  const p = cur();
+  p.raw = p.lines.map(l => l.la).join('\n');
+  p.mode = 'lines';
+  touch(p);
+  renderText();
+  toast('Text auf die bisherigen Zeilen zurückgesetzt.');
+});
+
+$('#proj-list').addEventListener('click', e => {
+  const del = e.target.closest('.proj-del');
+  if (del) {
+    if (!del.classList.contains('armed')) {
+      $$('.proj-del.armed').forEach(b => { b.classList.remove('armed'); b.innerHTML = ICON.trash; });
+      del.classList.add('armed');
+      del.textContent = 'Löschen?';
+      setTimeout(() => { if (del.isConnected && del.classList.contains('armed')) { del.classList.remove('armed'); del.innerHTML = ICON.trash; } }, 3500);
+      return;
+    }
+    const id = del.dataset.id;
+    const gone = state.projects.find(p => p.id === id);
+    state.projects = state.projects.filter(p => p.id !== id);
+    if (state.current === id) state.current = null;
+    cur();
+    scheduleSave();
+    renderText();
+    toast(`„${gone && gone.title || 'Text'}“ gelöscht.`, { action: { label: 'Rückgängig', fn: () => { state.projects.push(gone); scheduleSave(); renderText(); } } });
+    return;
+  }
+  const open = e.target.closest('.proj-open');
+  if (open) openProject(open.dataset.id);
+});
+$('#samples').addEventListener('click', e => { const b = e.target.closest('[data-sample]'); if (b) loadSample(b.dataset.sample); });
+
+/* Projekt sichern / laden */
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function fileBase(p) {
+  return (p.title || p.source || 'uebersetzung').normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss')
+    .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'uebersetzung';
+}
+$('#btn-save-json').addEventListener('click', () => {
+  const p = cur();
+  download(fileBase(p) + '.glossa.json', new Blob([JSON.stringify({ glossa: 1, project: p }, null, 2)], { type: 'application/json' }));
+  toast('Projekt gesichert.');
+});
+$('#file-json').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      const src = d && d.project ? d.project : d;
+      if (!src || !Array.isArray(src.lines)) throw new Error('format');
+      const p = normalizeProject(src);
+      p.id = uid();
+      p.updated = Date.now();
+      state.projects.push(p);
+      state.current = p.id;
+      scheduleSave();
+      setView(p.lines.length ? 'work' : 'text');
+      toast(`„${p.title || 'Projekt'}“ geladen.`);
+    } catch (err) {
+      toast('Diese Datei ist kein Glossa-Projekt. Wähle eine .json-Datei, die du mit „Projekt sichern“ erstellt hast.', { ms: 6000 });
+    }
+  };
+  r.readAsText(f);
+});
+
+/* ---------- Schritt 2: Übersetzen ---------- */
+function vocabMap(p) {
+  const m = new Map();
+  for (const v of p.vocab) for (const f of v.forms) m.set(f, v);
+  return m;
+}
+function wordsHTML(la, vm) {
+  let k = 0;
+  return la.split(WORD_SPLIT).map((s, i) => {
+    if (i % 2 === 0) return esc(s);
+    const v = vm.get(normKey(s));
+    return `<span class="w${v ? ' known' : ''}" data-w="${k++}"${v ? ` title="${esc(v.word + ': ' + v.meaning)}"` : ''}>${esc(s)}</span>`;
+  }).join('');
+}
+const openNotes = new Set();
+function lineHTML(l, i, vm) {
+  const n = i + 1;
+  const cls = ['line'];
+  if (l.de.trim()) cls.push('done');
+  if (l.unsure) cls.push('unsure');
+  const noteOpen = !!l.note.trim() || openNotes.has(l.id);
+  return `<article class="${cls.join(' ')}" id="L-${l.id}" data-id="${l.id}">
+    <div class="ln${n % 5 === 0 ? ' five' : ''}"><span>${n}</span><i class="dot" aria-hidden="true"></i></div>
+    <div class="lbody">
+      <p class="la" lang="la">${wordsHTML(l.la, vm)}</p>
+      <textarea class="de" rows="1" lang="de" aria-label="Übersetzung von Zeile ${n}" placeholder="Übersetzung …">${esc(l.de)}</textarea>
+      <div class="notebox"${noteOpen ? '' : ' hidden'}><textarea class="note" rows="1" aria-label="Notiz zu Zeile ${n}" placeholder="Notiz: Konstruktion, Grammatik, Rückfrage …">${esc(l.note)}</textarea></div>
+    </div>
+    <div class="ltools">
+      <button class="ic t-unsure" type="button" aria-pressed="${l.unsure}" title="Als unsicher markieren (Alt+U)" aria-label="Zeile ${n} als unsicher markieren">?</button>
+      <button class="ic t-note" type="button" aria-pressed="${!!l.note.trim()}" title="Notiz (Alt+N)" aria-label="Notiz zu Zeile ${n}">${ICON.note}</button>
+      <button class="ic t-more" type="button" aria-haspopup="menu" aria-expanded="false" title="Weitere Aktionen" aria-label="Weitere Aktionen für Zeile ${n}">${ICON.more}</button>
+    </div>
+  </article>`;
+}
+function autosize(t) {
+  if (!t.offsetParent) return;
+  t.style.height = 'auto';
+  t.style.height = (t.scrollHeight + t.offsetHeight - t.clientHeight) + 'px';
+}
+function autosizeAll() { $$('#lines textarea').forEach(autosize); }
+
+function renderWork() {
+  const p = cur();
+  $('#w-title').textContent = p.title || 'Ohne Titel';
+  $('#w-source').textContent = p.source || 'Übersetzung';
+  $('#w-badge').hidden = !p.sample;
+  $('#w-tip').hidden = !p.sample;
+  const vm = vocabMap(p);
+  $('#lines').innerHTML = p.lines.map((l, i) => lineHTML(l, i, vm)).join('');
+  $('#lines').hidden = !p.lines.length;
+  $('#w-empty').hidden = !!p.lines.length;
+  $('#w-foot').hidden = !p.lines.length;
+  autosizeAll();
+  if (p.last) { const a = lineEl(p.last); if (a) a.classList.add('active'); }
+  renderVocab();
+  renderTabs();
+  updateProgress();
+}
+function refreshKnown() {
+  const vm = vocabMap(cur());
+  $$('#lines .w').forEach(w => {
+    const v = vm.get(normKey(w.textContent));
+    w.classList.toggle('known', !!v);
+    if (v) w.title = v.word + ': ' + v.meaning; else w.removeAttribute('title');
+  });
+}
+function setLineState(art, l) {
+  art.classList.toggle('done', !!l.de.trim());
+  art.classList.toggle('unsure', !!l.unsure);
+}
+function updateProgress() {
+  const p = cur();
+  const s = stats(p);
+  const pct = s.total ? s.done / s.total * 100 : 0;
+  $('#p-done').textContent = s.done;
+  $('#p-total').textContent = s.total;
+  $('#p-bar').style.width = pct + '%';
+  $('#p-sub').textContent = [s.unsure ? `${s.unsure} als unsicher markiert` : '', s.total ? `${s.words} lateinische Wörter` : ''].filter(Boolean).join(' · ');
+  $('#t-num').textContent = `${s.done}/${s.total}`;
+  $('#t-bar').style.width = pct + '%';
+  $('#tstat').title = `${s.done} von ${s.total} Zeilen übersetzt`;
+  $('#btn-next-open').disabled = !s.total || s.done === s.total;
+}
+function setActive(art) {
+  const p = cur();
+  if (p.last === art.dataset.id && art.classList.contains('active')) return;
+  $$('#lines .line.active').forEach(a => a.classList.remove('active'));
+  art.classList.add('active');
+  p.last = art.dataset.id;
+  scheduleSave();
+}
+function focusLine(art, which = 'de') {
+  if (!art) return false;
+  const t = art.querySelector(which === 'note' ? '.note' : '.de');
+  if (!t) return false;
+  t.focus({ preventScroll: true });
+  const r = art.getBoundingClientRect();
+  const topLimit = $('.topbar').getBoundingClientRect().bottom + 8;
+  if (r.top < topLimit || r.bottom > window.innerHeight - 24) art.scrollIntoView({ block: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
+  const n = t.value.length;
+  t.setSelectionRange(n, n);
+  return true;
+}
+function nextOpen() {
+  const p = cur();
+  const n = p.lines.length;
+  if (!n) return;
+  const start = Math.max(0, idxOf(p.last));
+  const focused = document.activeElement && document.activeElement.closest && document.activeElement.closest('.line');
+  const offset = focused && focused.dataset.id === p.last ? 1 : 0;
+  for (let k = 0; k < n; k++) {
+    const l = p.lines[(start + offset + k) % n];
+    if (!l.de.trim()) { focusLine(lineEl(l.id)); return; }
+  }
+  toast('Alle Zeilen sind übersetzt.', { action: { label: 'Zum Export', fn: () => go('export') } });
+}
+function toggleUnsure(art) {
+  const l = getLine(art.dataset.id);
+  l.unsure = !l.unsure;
+  art.querySelector('.t-unsure').setAttribute('aria-pressed', l.unsure);
+  setLineState(art, l);
+  touch();
+  updateProgress();
+}
+function toggleNote(art, forceOpen) {
+  const l = getLine(art.dataset.id);
+  const box = art.querySelector('.notebox');
+  const open = forceOpen ?? box.hidden;
+  if (open) {
+    openNotes.add(l.id);
+    box.hidden = false;
+    const t = box.querySelector('.note');
+    autosize(t);
+    t.focus();
+  } else {
+    if (l.note.trim()) { box.querySelector('.note').focus(); return; }
+    openNotes.delete(l.id);
+    box.hidden = true;
+    art.querySelector('.de').focus();
+  }
+}
+
+const linesEl = $('#lines');
+linesEl.addEventListener('input', e => {
+  const t = e.target;
+  const art = t.closest('.line');
+  if (!art) return;
+  const l = getLine(art.dataset.id);
+  if (!l) return;
+  if (t.classList.contains('de')) {
+    l.de = t.value;
+    setLineState(art, l);
+    updateProgress();
+  } else if (t.classList.contains('note')) {
+    l.note = t.value;
+    art.querySelector('.t-note').setAttribute('aria-pressed', !!l.note.trim());
+  } else if (t.classList.contains('la-input')) {
+    autosize(t);
+    return;
+  } else return;
+  autosize(t);
+  touch();
+});
+linesEl.addEventListener('focusin', e => {
+  const art = e.target.closest('.line');
+  if (art) setActive(art);
+});
+linesEl.addEventListener('focusout', e => {
+  const t = e.target;
+  if (!t.classList.contains('note')) return;
+  const art = t.closest('.line');
+  const l = art && getLine(art.dataset.id);
+  if (l && !l.note.trim()) {
+    setTimeout(() => {
+      if (art.contains(document.activeElement)) return;
+      openNotes.delete(l.id);
+      const box = art.querySelector('.notebox');
+      if (box) box.hidden = true;
+    }, 0);
+  }
+});
+linesEl.addEventListener('keydown', e => {
+  const t = e.target;
+  const art = t.closest('.line');
+  if (!art) return;
+  if (t.classList.contains('la-input')) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveLatin(art); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelLatin(art); }
+    return;
+  }
+  if (!t.matches('.de, .note')) return;
+  if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && t.classList.contains('de')) {
+    if (e.isComposing) return;
+    e.preventDefault();
+    const next = art.nextElementSibling;
+    if (next) focusLine(next);
+    else {
+      const s = stats(cur());
+      if (s.done === s.total) toast('Alle Zeilen übersetzt.', { action: { label: 'Zum Export', fn: () => go('export') } });
+      else toast(`Letzte Zeile erreicht. Noch ${s.total - s.done} offen.`, { action: { label: 'Zur offenen Zeile', fn: nextOpen } });
+    }
+  } else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    e.preventDefault();
+    focusLine(e.key === 'ArrowDown' ? art.nextElementSibling : art.previousElementSibling);
+  } else if (e.altKey && e.code === 'KeyU') {
+    e.preventDefault();
+    toggleUnsure(art);
+  } else if (e.altKey && e.code === 'KeyN') {
+    e.preventDefault();
+    if (t.classList.contains('note')) art.querySelector('.de').focus();
+    else toggleNote(art, true);
+  }
+});
+linesEl.addEventListener('click', e => {
+  const w = e.target.closest('.w');
+  if (w) { openPop(w); return; }
+  const art = e.target.closest('.line');
+  if (!art) return;
+  if (e.target.closest('.t-unsure')) { toggleUnsure(art); return; }
+  if (e.target.closest('.t-note')) { toggleNote(art); return; }
+  const more = e.target.closest('.t-more');
+  if (more) {
+    if (!menu.hidden && menu.dataset.line === art.dataset.id) closeMenu();
+    else openMenu(more);
+    return;
+  }
+  const le = e.target.closest('[data-le]');
+  if (le) {
+    if (le.dataset.le === 'save') saveLatin(art);
+    else cancelLatin(art);
+  }
+});
+$('#btn-next-open').addEventListener('click', nextOpen);
+
+/* Zeilen verbinden, teilen, bearbeiten, löschen */
+let undoSnap = null;
+function snapshot() {
+  const p = cur();
+  undoSnap = { pid: p.id, lines: clone(p.lines), vocab: clone(p.vocab), raw: p.raw, mode: p.mode };
+}
+function undo() {
+  if (!undoSnap) return;
+  const p = state.projects.find(x => x.id === undoSnap.pid);
+  if (!p) return;
+  Object.assign(p, { lines: undoSnap.lines, vocab: undoSnap.vocab, raw: undoSnap.raw, mode: undoSnap.mode });
+  undoSnap = null;
+  touch(p);
+  if (state.view === 'work' && p.id === state.current) renderWork();
+  toast('Rückgängig gemacht.');
+}
+function afterStructure() {
+  const p = cur();
+  p.raw = p.lines.map(l => l.la).join('\n');
+  p.mode = 'lines';
+  touch(p);
+  renderWork();
+}
+const joinText = (a, b, sep) => [a, b].map(s => s.trim()).filter(Boolean).join(sep);
+function mergeNext(id) {
+  const p = cur();
+  const i = idxOf(id);
+  if (i < 0 || i >= p.lines.length - 1) return;
+  snapshot();
+  const a = p.lines[i], b = p.lines[i + 1];
+  a.la = joinText(a.la, b.la, ' ');
+  a.de = joinText(a.de, b.de, ' ');
+  a.note = joinText(a.note, b.note, '\n');
+  a.unsure = a.unsure || b.unsure;
+  p.vocab.forEach(v => { if (v.line === b.id) v.line = a.id; });
+  p.lines.splice(i + 1, 1);
+  afterStructure();
+  focusLine(lineEl(a.id));
+  toast('Zeilen verbunden.', { action: { label: 'Rückgängig', fn: undo } });
+}
+function splitAt(id, wordIdx) {
+  const p = cur();
+  const i = idxOf(id);
+  const l = p.lines[i];
+  if (!l || wordIdx < 1) return;
+  const parts = l.la.split(WORD_SPLIT);
+  const cut = 2 * wordIdx + 1;
+  const a = parts.slice(0, cut).join('').trim();
+  const b = parts.slice(cut).join('').trim();
+  if (!a || !b) return;
+  snapshot();
+  l.la = a;
+  const nl = newLine(b);
+  p.lines.splice(i + 1, 0, nl);
+  afterStructure();
+  focusLine(lineEl(nl.id));
+  toast('Zeile geteilt. Die bisherige Übersetzung steht in der oberen Zeile.', { action: { label: 'Rückgängig', fn: undo } });
+}
+function deleteLine(id) {
+  const p = cur();
+  const i = idxOf(id);
+  if (i < 0) return;
+  snapshot();
+  p.lines.splice(i, 1);
+  if (p.last === id) p.last = (p.lines[i] || p.lines[i - 1] || {}).id || null;
+  afterStructure();
+  toast('Zeile gelöscht.', { action: { label: 'Rückgängig', fn: undo } });
+}
+function insertAfter(id) {
+  const p = cur();
+  const i = idxOf(id);
+  const nl = newLine('');
+  p.lines.splice(i + 1, 0, nl);
+  renderWork();
+  editLatin(lineEl(nl.id));
+}
+function editLatin(art) {
+  const l = getLine(art.dataset.id);
+  const la = art.querySelector('.la');
+  la.hidden = true;
+  const box = document.createElement('div');
+  box.className = 'la-edit';
+  box.innerHTML = `<textarea class="la-input" rows="2" lang="la" spellcheck="false" aria-label="Lateinischer Text">${esc(l.la)}</textarea>
+    <div class="la-edit-actions"><button class="btn small primary" type="button" data-le="save">Speichern</button><button class="btn small ghost" type="button" data-le="cancel">Abbrechen</button></div>`;
+  la.after(box);
+  const t = box.querySelector('textarea');
+  autosize(t);
+  t.focus();
+  t.setSelectionRange(t.value.length, t.value.length);
+}
+function cancelLatin(art) {
+  const p = cur();
+  const l = getLine(art.dataset.id);
+  if (l && !l.la.trim()) {
+    const i = idxOf(l.id);
+    p.lines.splice(i, 1);
+    renderWork();
+    focusLine(lineEl((p.lines[i - 1] || p.lines[i] || {}).id));
+    return;
+  }
+  renderWork();
+  focusLine(lineEl(art.dataset.id));
+}
+function saveLatin(art) {
+  const p = cur();
+  const l = getLine(art.dataset.id);
+  const t = art.querySelector('.la-input');
+  if (!l || !t) return;
+  const v = t.value.replace(/\s+/g, ' ').trim();
+  if (!v) {
+    if (!l.de.trim() && !l.note.trim()) { p.lines.splice(idxOf(l.id), 1); afterStructure(); return; }
+    toast('Eine Zeile braucht lateinischen Text. Lösche die Zeile über ⋯, wenn du sie nicht mehr brauchst.', { ms: 5000 });
+    return;
+  }
+  l.la = v;
+  afterStructure();
+  focusLine(lineEl(l.id));
+}
+
+/* Menü */
+const menu = $('#menu');
+let menuBtn = null;
+function place(elm, r, align = 'start') {
+  const m = 8, w = elm.offsetWidth, h = elm.offsetHeight;
+  let left = align === 'end' ? r.right - w : r.left;
+  left = Math.max(m, Math.min(left, window.innerWidth - w - m));
+  let top = r.bottom + 6;
+  if (top + h > window.innerHeight - m) {
+    const up = r.top - h - 6;
+    top = up >= m ? up : Math.max(m, window.innerHeight - h - m);
+  }
+  elm.style.left = left + 'px';
+  elm.style.top = top + 'px';
+}
+function openMenu(btn) {
+  closePop();
+  closeMenu();
+  const art = btn.closest('.line');
+  menu.dataset.line = art.dataset.id;
+  menu.querySelector('[data-act="merge"]').disabled = idxOf(art.dataset.id) === cur().lines.length - 1;
+  menu.hidden = false;
+  place(menu, btn.getBoundingClientRect(), 'end');
+  menuBtn = btn;
+  btn.setAttribute('aria-expanded', 'true');
+  menu.querySelector('button:not(:disabled)').focus();
+}
+function closeMenu(refocus) {
+  if (menu.hidden) return;
+  menu.hidden = true;
+  if (menuBtn) { menuBtn.setAttribute('aria-expanded', 'false'); if (refocus && menuBtn.isConnected) menuBtn.focus(); }
+  menuBtn = null;
+}
+menu.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const id = menu.dataset.line;
+  closeMenu();
+  const art = lineEl(id);
+  if (!art) return;
+  if (b.dataset.act === 'merge') mergeNext(id);
+  else if (b.dataset.act === 'edit') editLatin(art);
+  else if (b.dataset.act === 'insert') insertAfter(id);
+  else if (b.dataset.act === 'delete') deleteLine(id);
+});
+menu.addEventListener('keydown', e => {
+  const items = $$('button:not(:disabled)', menu);
+  const i = items.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  else if (e.key === 'Tab') closeMenu();
+});
+
+/* Wort-Popover */
+const pop = $('#pop');
+let popAnchor = null;
+const QUE_KEEP = /^(qu|cu|utr|uter|utiq|ubi|undi|deni|itaq|atq|neq|usq|plerumq|namq|absq)/;
+function encliticStem(w) {
+  if (w.length < 6 || !w.endsWith('que') || w.endsWith('cumque') || QUE_KEEP.test(w)) return null;
+  return w.slice(0, -3);
+}
+function setLinks(w) {
+  $('#pop-links').innerHTML = DICTS.map(d => `<a href="${esc(d.url(w))}" target="_blank" rel="noopener noreferrer"><span>${esc(d.name)}${d.note ? `<small>${esc(d.note)}</small>` : ''}</span>${ICON.ext}</a>`).join('');
+  $$('#pop-enc .chip').forEach(c => c.classList.toggle('is-on', c.dataset.look === w));
+}
+function openPop(span) {
+  closeMenu();
+  const art = span.closest('.line');
+  const p = cur();
+  const form = span.textContent;
+  const key = normKey(form);
+  const look = plain(form);
+  const stem = encliticStem(look);
+  pop.dataset.line = art.dataset.id;
+  pop.dataset.w = span.dataset.w;
+  pop.dataset.key = key;
+  pop.dataset.stem = stem ? normKey(stem) : '';
+  $('#pop-word').textContent = form;
+  const enc = $('#pop-enc');
+  if (stem) {
+    enc.hidden = false;
+    enc.innerHTML = `Endet auf <b>-que</b> („und“)? Nachschlagen als <span class="chips"><button type="button" class="chip" data-look="${esc(stem)}">${esc(stem)}</button><button type="button" class="chip" data-look="${esc(look)}">${esc(look)}</button></span>`;
+    setLinks(stem);
+  } else {
+    enc.hidden = true;
+    enc.innerHTML = '';
+    setLinks(look);
+  }
+  const vm = vocabMap(p);
+  const v = vm.get(key) || (stem && vm.get(normKey(stem)));
+  $('#pop-vw').value = v ? v.word : (stem || look);
+  $('#pop-vm').value = v ? v.meaning : '';
+  $('#pop-save').textContent = v ? 'Ändern' : 'Speichern';
+  const sp = $('#pop-split');
+  sp.hidden = span.dataset.w === '0';
+  sp.textContent = `Zeile vor „${form}“ teilen`;
+  $$('#lines .w.is-sel').forEach(x => x.classList.remove('is-sel'));
+  span.classList.add('is-sel');
+  popAnchor = span;
+  pop.hidden = false;
+  place(pop, span.getBoundingClientRect());
+  pop.focus({ preventScroll: true });
+}
+function closePop(refocus) {
+  if (pop.hidden) return;
+  pop.hidden = true;
+  if (popAnchor) {
+    popAnchor.classList.remove('is-sel');
+    if (refocus && popAnchor.isConnected) {
+      const de = popAnchor.closest('.line') && popAnchor.closest('.line').querySelector('.de');
+      if (de) de.focus({ preventScroll: true });
+    }
+  }
+  popAnchor = null;
+}
+$('#pop-close').addEventListener('click', () => closePop(true));
+$('#pop-enc').addEventListener('click', e => { const c = e.target.closest('.chip'); if (c) setLinks(c.dataset.look); });
+$('#pop-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const word = $('#pop-vw').value.trim();
+  const meaning = $('#pop-vm').value.trim();
+  if (!word) { $('#pop-vw').focus(); return; }
+  const forms = [pop.dataset.key, pop.dataset.stem].filter(Boolean);
+  const existed = saveVocab({ word, meaning, forms, line: pop.dataset.line });
+  closePop(true);
+  toast(existed ? 'Vokabel geändert.' : 'Vokabel gespeichert.');
+});
+$('#pop-split').addEventListener('click', () => {
+  const id = pop.dataset.line, wi = Number(pop.dataset.w);
+  closePop();
+  splitAt(id, wi);
+});
+function repositionFloating() {
+  if (!pop.hidden) {
+    if (popAnchor && popAnchor.isConnected) place(pop, popAnchor.getBoundingClientRect());
+    else closePop();
+  }
+  if (!menu.hidden) {
+    if (menuBtn && menuBtn.isConnected) place(menu, menuBtn.getBoundingClientRect(), 'end');
+    else closeMenu();
+  }
+}
+window.addEventListener('scroll', repositionFloating, { passive: true, capture: true });
+document.addEventListener('pointerdown', e => {
+  if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('.w')) closePop();
+  if (!menu.hidden && !menu.contains(e.target) && !e.target.closest('.t-more')) closeMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!pop.hidden) { e.preventDefault(); closePop(true); }
+  else if (!menu.hidden) { e.preventDefault(); closeMenu(true); }
+});
+
+/* ---------- Vokabeln ---------- */
+function saveVocab({ id, word, meaning, forms, line }) {
+  const p = cur();
+  let v = id ? p.vocab.find(x => x.id === id) : null;
+  if (!v) v = p.vocab.find(x => forms.some(f => x.forms.includes(f)));
+  if (!v) v = p.vocab.find(x => x.word.toLowerCase() === word.toLowerCase());
+  const existed = !!v;
+  if (v) {
+    v.word = word;
+    v.meaning = meaning;
+    forms.forEach(f => { if (f && !v.forms.includes(f)) v.forms.push(f); });
+    if (!v.line && line) v.line = line;
+  } else {
+    p.vocab.push({ id: uid(), word, meaning, forms: forms.filter(Boolean), line: line || null });
+  }
+  touch(p);
+  renderVocab();
+  refreshKnown();
+  return existed;
+}
+function renderVocab() {
+  const p = cur();
+  const list = p.vocab.slice().sort((a, b) => a.word.localeCompare(b.word, 'de', { sensitivity: 'base' }));
+  $('#vocab-count').textContent = p.vocab.length ? p.vocab.length : '';
+  $('#voc-empty').hidden = !!p.vocab.length;
+  $('#voc-copy').parentElement.hidden = !p.vocab.length;
+  $('#voc-list').innerHTML = list.map(v => {
+    const li = v.line ? idxOf(v.line) : -1;
+    return `<li class="voc">
+      <button class="voc-main" type="button" data-edit="${v.id}" title="Bearbeiten"><span class="voc-w" lang="la">${esc(v.word)}</span>${v.meaning ? `<span class="voc-m">${esc(v.meaning)}</span>` : ''}</button>
+      ${li >= 0 ? `<button class="voc-ref" type="button" data-line="${v.line}" title="Zu Zeile ${li + 1} springen">Z. ${li + 1}</button>` : '<span></span>'}
+      <button class="ic" type="button" data-del="${v.id}" aria-label="${esc(v.word)} löschen" title="Löschen">${ICON.x}</button>
+    </li>`;
+  }).join('');
+}
+function resetVocForm() {
+  $('#voc-id').value = '';
+  $('#voc-w').value = '';
+  $('#voc-m').value = '';
+  $('#voc-submit').textContent = 'Hinzufügen';
+  $('#voc-cancel').hidden = true;
+}
+$('#voc-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const word = $('#voc-w').value.trim();
+  const meaning = $('#voc-m').value.trim();
+  if (!word) { $('#voc-w').focus(); return; }
+  const first = (word.match(WORD_ALL) || [word])[0];
+  const id = $('#voc-id').value;
+  const forms = id ? [] : [normKey(first)];
+  saveVocab({ id, word, meaning, forms, line: id ? null : cur().last });
+  resetVocForm();
+  $('#voc-w').focus();
+});
+$('#voc-cancel').addEventListener('click', resetVocForm);
+$('#voc-list').addEventListener('click', e => {
+  const p = cur();
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const gone = p.vocab.find(v => v.id === del.dataset.del);
+    p.vocab = p.vocab.filter(v => v !== gone);
+    touch(p);
+    renderVocab();
+    refreshKnown();
+    toast('Vokabel gelöscht.', { action: { label: 'Rückgängig', fn: () => {
+      if (!gone || p.vocab.includes(gone)) return;
+      p.vocab.push(gone);
+      touch(p);
+      if (p.id === state.current && state.view === 'work') { renderVocab(); refreshKnown(); }
+    } } });
+    return;
+  }
+  const ref = e.target.closest('[data-line]');
+  if (ref) { focusLine(lineEl(ref.dataset.line)); return; }
+  const ed = e.target.closest('[data-edit]');
+  if (ed) {
+    const v = p.vocab.find(x => x.id === ed.dataset.edit);
+    if (!v) return;
+    $('#voc-id').value = v.id;
+    $('#voc-w').value = v.word;
+    $('#voc-m').value = v.meaning;
+    $('#voc-submit').textContent = 'Speichern';
+    $('#voc-cancel').hidden = false;
+    $('#voc-m').focus();
+  }
+});
+function vocabText(p) {
+  return p.vocab.slice().sort((a, b) => a.word.localeCompare(b.word, 'de', { sensitivity: 'base' })).map(v => `${v.word} – ${v.meaning}`).join('\n');
+}
+$('#voc-copy').addEventListener('click', () => copyPlain(vocabText(cur()), 'Vokabelliste kopiert.'));
+
+/* Tabs */
+function renderTabs() {
+  $$('.tab').forEach(t => {
+    const on = t.dataset.tab === state.tab;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    $('#' + t.getAttribute('aria-controls')).hidden = !on;
+  });
+}
+$('.tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab');
+  if (!t) return;
+  state.tab = t.dataset.tab;
+  renderTabs();
+  scheduleSave();
+});
+$('.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const tabs = $$('.tab');
+  const i = tabs.findIndex(t => t.dataset.tab === state.tab);
+  const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+  state.tab = n.dataset.tab;
+  renderTabs();
+  n.focus();
+  scheduleSave();
+});
+
+/* ---------- Schritt 3: Export ---------- */
+function exportHTML(p, o) {
+  const font = FONTS[o.font] || FONTS.Georgia;
+  const pt = Number(o.size) || 12;
+  const lh = (pt * 1.42).toFixed(1) + 'pt';
+  const ink = '#1a1a1a', muted = '#6b6b6b', amber = '#B26A00';
+  const gap = Math.round(pt * 0.85) + 'pt';
+  const base = `font-family:${font};font-size:${pt}pt;line-height:${lh};`;
+  const sLa = base + `color:${ink};`;
+  const sDe = base + `color:${o.color};`;
+  const sNote = `font-family:${font};font-size:${pt - 2}pt;line-height:${((pt - 2) * 1.4).toFixed(1)}pt;color:${muted};font-style:italic;`;
+  let out = '';
+  if (o.head && (p.title || p.source)) {
+    if (p.title) out += `<h1 style="margin:0 0 3pt;font-family:${font};font-size:${pt + 6}pt;line-height:1.2;font-weight:bold;color:${ink};">${esc(p.title)}</h1>`;
+    if (p.source) out += `<p style="margin:0 0 ${pt + 6}pt;font-family:${font};font-size:${pt - 1}pt;color:${muted};">${esc(p.source)}</p>`;
+    else out += `<p style="margin:0 0 ${pt}pt;"></p>`;
+  }
+  const blocks = [];
+  p.lines.forEach((l, i) => {
+    const de = l.de.trim();
+    if (!de && o.empty === 'skip') return;
+    const paras = [[sLa, esc(l.la)]];
+    if (de) paras.push([sDe, esc(de).replace(/\n/g, '<br>') + (o.unsure && l.unsure ? ` <span style="color:${amber};">(?)</span>` : '')]);
+    else if (o.empty === 'line') paras.push([sDe + 'border-bottom:1px solid #b5c7ba;', '&nbsp;']);
+    if (o.notes && l.note.trim()) paras.push([sNote, esc(l.note.trim()).replace(/\n/g, '<br>')]);
+    const html = paras.map(([s, h], k) => `<p style="margin:${k && paras[k][0] === sNote ? '2pt' : '0'} 0 ${k === paras.length - 1 ? gap : '0'} 0;${s}">${h}</p>`).join('');
+    blocks.push({ n: i + 1, html });
+  });
+  if (!blocks.length) return out + `<p style="${sLa}color:${muted};font-style:italic;">Keine Zeilen zum Exportieren.</p>`;
+  if (o.num === 'none') {
+    out += blocks.map(b => b.html).join('');
+  } else {
+    out += `<table style="border-collapse:collapse;width:100%;" cellpadding="0" cellspacing="0">` + blocks.map(b => {
+      const show = o.num === 'all' || b.n % 5 === 0;
+      return `<tr><td style="width:${Math.round(pt * 2.4)}pt;vertical-align:top;padding:0 ${Math.round(pt * 0.8)}pt 0 0;text-align:right;font-family:${font};font-size:${pt - 3}pt;line-height:${lh};color:${muted};">${show ? b.n : ''}</td><td style="vertical-align:top;padding:0;">${b.html}</td></tr>`;
+    }).join('') + '</table>';
+  }
+  if (o.vocab && p.vocab.length) {
+    const list = p.vocab.slice().sort((a, b) => a.word.localeCompare(b.word, 'de', { sensitivity: 'base' }));
+    out += `<h2 style="margin:${pt * 1.6}pt 0 6pt;font-family:${font};font-size:${pt + 2}pt;font-weight:bold;color:${ink};">Vokabeln</h2>`;
+    out += `<table style="border-collapse:collapse;" cellpadding="0" cellspacing="0">` + list.map(v =>
+      `<tr><td style="padding:2pt 16pt 2pt 0;vertical-align:top;font-family:${font};font-size:${pt - 1}pt;font-style:italic;color:${ink};">${esc(v.word)}</td><td style="padding:2pt 0;vertical-align:top;font-family:${font};font-size:${pt - 1}pt;color:${o.color};">${esc(v.meaning)}</td></tr>`
+    ).join('') + '</table>';
+  }
+  return out;
+}
+function exportText(p, o) {
+  const out = [];
+  if (o.head) {
+    if (p.title) out.push(p.title);
+    if (p.source) out.push(p.source);
+    if (out.length) out.push('');
+  }
+  const w = String(p.lines.length).length;
+  const ind = o.num === 'none' ? '' : ' '.repeat(w + 2);
+  p.lines.forEach((l, i) => {
+    const n = i + 1;
+    const de = l.de.trim();
+    if (!de && o.empty === 'skip') return;
+    const show = o.num === 'all' || (o.num === 'five' && n % 5 === 0);
+    out.push((o.num === 'none' ? '' : (show ? String(n).padStart(w) : ' '.repeat(w)) + '  ') + l.la);
+    if (de) out.push(ind + de.replace(/\n/g, '\n' + ind) + (o.unsure && l.unsure ? ' (?)' : ''));
+    else if (o.empty === 'line') out.push(ind + '_'.repeat(40));
+    if (o.notes && l.note.trim()) out.push(ind + '› ' + l.note.trim().replace(/\n/g, ' '));
+    out.push('');
+  });
+  if (o.vocab && p.vocab.length) out.push('Vokabeln', '', vocabText(p));
+  return out.join('\n').replace(/\n+$/, '\n');
+}
+function renderExport() {
+  const p = cur(), o = state.exp;
+  $('#ex-head').checked = o.head;
+  $('#ex-notes').checked = o.notes;
+  $('#ex-unsure').checked = o.unsure;
+  $('#ex-vocab').checked = o.vocab;
+  $('#ex-vocab').disabled = !p.vocab.length;
+  $$('input[name="ex-num"]').forEach(r => { r.checked = r.value === o.num; });
+  $$('input[name="ex-empty"]').forEach(r => { r.checked = r.value === o.empty; });
+  $$('input[name="ex-color"]').forEach(r => { r.checked = r.value === o.color; });
+  $$('input[name="ex-size"]').forEach(r => { r.checked = Number(r.value) === Number(o.size); });
+  $('#ex-font').value = o.font;
+  renderSheet();
+}
+function renderSheet() {
+  const p = cur();
+  const s = stats(p);
+  $('#sheet').innerHTML = p.lines.length ? exportHTML(p, state.exp) : '<p class="sheet-empty">Noch kein Text. Füge in Schritt 1 einen lateinischen Text ein.</p>';
+  $('#ex-sum').textContent = s.total ? `${s.total} Zeilen · ${s.done} übersetzt${s.total - s.done ? ` · ${s.total - s.done} offen` : ''}` : '';
+  const none = !p.lines.length;
+  ['#ex-copy', '#ex-copytext', '#ex-doc', '#ex-print', '#ex-html', '#ex-txt'].forEach(id => { $(id).disabled = none; });
+}
+$('#ex-opts').addEventListener('change', e => {
+  const t = e.target, o = state.exp;
+  if (t.id === 'ex-head') o.head = t.checked;
+  else if (t.id === 'ex-notes') o.notes = t.checked;
+  else if (t.id === 'ex-unsure') o.unsure = t.checked;
+  else if (t.id === 'ex-vocab') o.vocab = t.checked;
+  else if (t.id === 'ex-font') o.font = t.value;
+  else if (t.name === 'ex-num') o.num = t.value;
+  else if (t.name === 'ex-empty') o.empty = t.value;
+  else if (t.name === 'ex-color') o.color = t.value;
+  else if (t.name === 'ex-size') o.size = Number(t.value);
+  else return;
+  scheduleSave();
+  renderSheet();
+});
+
+function selectNode(node) {
+  const sel = window.getSelection();
+  const r = document.createRange();
+  r.selectNodeContents(node);
+  sel.removeAllRanges();
+  sel.addRange(r);
+  return sel;
+}
+function fallbackCopyRich() {
+  const sel = selectNode($('#sheet'));
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  if (ok) sel.removeAllRanges();
+  return ok;
+}
+const MANUAL = 'Automatisches Kopieren ist hier gesperrt. Die Vorschau ist markiert: drücke Strg+C (Mac: ⌘+C).';
+function copyRich(html, text) {
+  const done = ok => toast(ok ? 'Kopiert. Jetzt in Word oder Google Docs einfügen.' : MANUAL, { ms: ok ? 3200 : 7000 });
+  try {
+    if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' })
+      });
+      navigator.clipboard.write([item]).then(() => done(true), () => done(fallbackCopyRich()));
+      return;
+    }
+  } catch (e) { /* weiter mit Fallback */ }
+  done(fallbackCopyRich());
+}
+function copyPlain(text, msg) {
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    toast(ok ? msg : 'Kopieren ist hier gesperrt. Markiere den Text und drücke Strg+C (Mac: ⌘+C).', { ms: ok ? 2800 : 6000 });
+  };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast(msg), fallback);
+      return;
+    }
+  } catch (e) { /* weiter mit Fallback */ }
+  fallback();
+}
+function wrapHTML(p, body) {
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${esc(p.title || 'Übersetzung')}</title><style>body{margin:0;background:#fff}main{max-width:760px;margin:0 auto;padding:48px 32px}@media print{main{padding:0}}</style></head><body><main>${body}</main></body></html>`;
+}
+function wordDoc(p, body) {
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(p.title || 'Übersetzung')}</title><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]--><style>@page WordSection1{size:21cm 29.7cm;margin:2cm 2cm 2cm 2.5cm}div.WordSection1{page:WordSection1}</style></head><body><div class="WordSection1">${body}</div></body></html>`;
+}
+$('#ex-copy').addEventListener('click', () => {
+  const p = cur();
+  copyRich(exportHTML(p, state.exp), exportText(p, state.exp));
+});
+$('#ex-copytext').addEventListener('click', () => copyPlain(exportText(cur(), state.exp), 'Text kopiert.'));
+$('#ex-doc').addEventListener('click', () => {
+  const p = cur();
+  download(fileBase(p) + '.doc', new Blob(['﻿', wordDoc(p, exportHTML(p, state.exp))], { type: 'application/msword' }));
+  toast('Word-Datei wird heruntergeladen.');
+});
+$('#ex-html').addEventListener('click', () => {
+  const p = cur();
+  download(fileBase(p) + '.html', new Blob([wrapHTML(p, exportHTML(p, state.exp))], { type: 'text/html' }));
+  toast('HTML-Datei wird heruntergeladen.');
+});
+$('#ex-txt').addEventListener('click', () => {
+  const p = cur();
+  download(fileBase(p) + '.txt', new Blob(['﻿', exportText(p, state.exp)], { type: 'text/plain;charset=utf-8' }));
+  toast('Textdatei wird heruntergeladen.');
+});
+$('#ex-print').addEventListener('click', () => {
+  $('#print-root').innerHTML = exportHTML(cur(), state.exp);
+  window.print();
+});
+
+/* ---------- Navigation ---------- */
+$$('.step').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-goto]');
+  if (g) { go(g.dataset.goto); return; }
+  if (e.target.closest('[data-new]')) newText();
+});
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (state.view === 'work') autosizeAll(); repositionFloating(); }, 120);
+});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.view === 'work') autosizeAll(); });
+
+if (FRAMED) {
+  $$('[data-needs-top]').forEach(el => { el.hidden = true; });
+  $('#framed-note').hidden = false;
+}
+
+cur();
+setView(state.view);
+const startLine = state.view === 'work' && cur().last && lineEl(cur().last);
+if (startLine) {
+  const r = startLine.getBoundingClientRect();
+  if (r.top > window.innerHeight - 60) startLine.scrollIntoView({ block: 'center' });
+}
+saveNow();
+})();
+</script>
+</body>
+</html>
