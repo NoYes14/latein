@@ -33,7 +33,7 @@ Alles steckt in einer einzigen Datei (`index.html`). Es gibt keinen Server und k
      PC, Gerundium/Gerundivum, *cum/ut/ne* und häufigen kleinen Wörtern.
 3. **Export:** Die Vorschau zeigt genau, was exportiert wird.
    - *Formatiert kopieren* und in Word, Pages oder Google Docs einfügen – Farben bleiben erhalten
-   - Herunterladen als Word (`.doc`), HTML oder Text, oder Drucken bzw. als PDF speichern
+   - Herunterladen als Word (`.docx`), HTML oder Text, oder Drucken bzw. als PDF speichern
    - Einstellbar: Titel, Notizen, (?) bei unsicheren Zeilen, Vokabelliste, Zeilenzählung
      (keine, jede, alle 5 Zeilen wie in Textausgaben), leere Schreiblinie für noch offene Zeilen,
      Grünton, Schrift und Schriftgröße
